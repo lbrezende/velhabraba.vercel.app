@@ -246,6 +246,7 @@ body{
 
 /* ===== MODOS BRABOS ===== */
 .card-brabos{transform:rotate(-.4deg)}
+.btn-tradicional{background:var(--acid)}
 .btn-vbatata{background:var(--orange)}
 .btn-vamnesia{background:var(--o)}
 .btn-vtijolada{background:var(--lime)}
@@ -367,30 +368,12 @@ body{
       </header>
       <button id="btn-continuar" class="sticker sticker-continuar" hidden></button>
       <div class="cards-modos">
-        <div class="card card-cpu">
-          <h2>VS A MÁQUINA 🤖</h2>
-          <div class="escolha-marca" role="group" aria-label="Jogar como X ou O">
-            <span class="rotulo">Jogar como:</span>
-            <button id="btn-marca-x" class="btn btn-marca marca-bx" aria-pressed="true" aria-label="Jogar como X">X</button>
-            <button id="btn-marca-o" class="btn btn-marca marca-bo" aria-pressed="false" aria-label="Jogar como O">O</button>
-          </div>
-          <div class="lista-dif">
-            <button class="btn btn-dif btn-moleza" data-modo="moleza">
-              <span class="nome">MOLEZA</span><span class="sub">ela tá nem aí</span>
-            </button>
-            <button class="btn btn-dif btn-casca" data-modo="cascagrossa">
-              <span class="nome">CASCA-GROSSA</span><span class="sub">vacilou, perdeu</span>
-            </button>
-            <button class="btn btn-dif btn-impossivel" data-modo="impossivel">
-              <span class="mini-sticker" aria-hidden="true">😈</span>
-              <span class="nome">IMPOSSÍVEL S.A.</span><span class="sub">ninguém venceu até hoje</span>
-            </button>
-          </div>
-          <span id="sticker-tentativas" class="sticker-tentativas" hidden></span>
-        </div>
         <div class="card card-brabos">
-          <h2>MODOS BRABOS 🔥</h2>
+          <h2>ESCOLHE TEU MODO 🔥</h2>
           <div id="lista-brabos" class="lista-dif">
+            <button class="btn btn-dif btn-tradicional" data-variante="classica">
+              <span class="nome">TRADICIONAL ⭕✖️</span><span class="sub">o clássico: fez a trinca, levou</span>
+            </button>
             <button class="btn btn-dif btn-vbatata" data-variante="batata">
               <span class="nome">BATATA QUENTE 💣</span><span class="sub">a trinca é o vexame</span>
             </button>
@@ -403,8 +386,13 @@ body{
           </div>
           <div id="seletor-brabo" class="seletor-brabo" hidden>
             <div class="topo-seletor">
-              <button id="btn-brabo-voltar" class="btn btn-voltar" aria-label="Voltar à lista de modos brabos">←</button>
+              <button id="btn-brabo-voltar" class="btn btn-voltar" aria-label="Voltar à lista de modos">←</button>
               <span id="titulo-brabo" class="sticker"></span>
+            </div>
+            <div id="escolha-marca-trad" class="escolha-marca" role="group" aria-label="Jogar como X ou O" hidden>
+              <span class="rotulo">Jogar como:</span>
+              <button id="btn-marca-x" class="btn btn-marca marca-bx" aria-pressed="true" aria-label="Jogar como X">X</button>
+              <button id="btn-marca-o" class="btn btn-marca marca-bo" aria-pressed="false" aria-label="Jogar como O">O</button>
             </div>
             <div class="lista-dif">
               <button class="btn btn-dif btn-moleza" data-dif-brabo="moleza">
@@ -421,6 +409,7 @@ body{
                 <span class="nome">A TORRE 🧱🏆</span><span class="sub">três chefes. zero derrotas permitidas.</span>
               </button>
             </div>
+            <span id="sticker-tentativas" class="sticker-tentativas" hidden></span>
             <span id="info-brabo" class="sticker-tentativas" hidden></span>
           </div>
         </div>
@@ -2725,14 +2714,29 @@ $('btn-continuar').addEventListener('click', () => {
 let varianteSelecionada = null;
 function abrirSeletorBrabo(v) {
   varianteSelecionada = v;
-  const info = INFO_VARIANTES[v];
   $('lista-brabos').hidden = true;
   $('seletor-brabo').hidden = false;
+  const ehClassica = v === 'classica';
+  $('escolha-marca-trad').hidden = !ehClassica;
+  $('btn-torre').hidden = v !== 'tijolada';
+  if (ehClassica) {
+    $('titulo-brabo').textContent = 'TRADICIONAL ⭕✖️ · O CLÁSSICO';
+    $('sub-brabo-moleza').textContent = 'ela tá nem aí';
+    $('sub-brabo-casca').textContent = 'vacilou, perdeu';
+    $('sub-brabo-impossivel').textContent = 'ninguém venceu até hoje';
+    const st = $('sticker-tentativas');
+    st.hidden = !(dados.tentativasImpossivel > 0);
+    if (!st.hidden) st.textContent = 'TENTATIVAS FRACASSADAS: ' + dados.tentativasImpossivel;
+    $('info-brabo').hidden = true;
+    $('btn-marca-x').focus();
+    return;
+  }
+  $('sticker-tentativas').hidden = true;
+  const info = INFO_VARIANTES[v];
   $('titulo-brabo').textContent = info.nome + ' · ' + info.selo;
   $('sub-brabo-moleza').textContent = info.subs.moleza;
   $('sub-brabo-casca').textContent = info.subs.cascagrossa;
   $('sub-brabo-impossivel').textContent = info.subs.impossivel;
-  $('btn-torre').hidden = v !== 'tijolada';
   const inf = $('info-brabo');
   const ex = dados.extras[v];
   let partes = [];
@@ -2764,7 +2768,9 @@ document.querySelectorAll('[data-variante]').forEach(b => {
 $('btn-brabo-voltar').addEventListener('click', fecharSeletorBrabo);
 document.querySelectorAll('[data-dif-brabo]').forEach(b => {
   b.addEventListener('click', () => {
-    if (varianteSelecionada) iniciarVariante(varianteSelecionada, b.dataset.difBrabo);
+    if (!varianteSelecionada) return;
+    if (varianteSelecionada === 'classica') iniciarJogo(b.dataset.difBrabo);
+    else iniciarVariante(varianteSelecionada, b.dataset.difBrabo);
   });
 });
 $('btn-regras').addEventListener('click', () => {
