@@ -323,6 +323,8 @@ body{
 .modal-som h2{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-h2);
   text-transform:uppercase;letter-spacing:-.02em;line-height:.92;margin-bottom:10px}
 .modal-som p{font-size:var(--fs-body);line-height:1.3;margin-bottom:20px;font-weight:500;color:var(--ink)}
+.dica-silencioso{display:inline-block;margin-top:10px;font-size:.8125rem;font-weight:700;color:var(--ink);
+  background:var(--acid);border:var(--b3) solid var(--ink);border-radius:8px;padding:6px 10px;line-height:1.2}
 .btn-ativar-som{width:100%;background:var(--acid);color:var(--ink);font-family:'Archivo Black','Arial Black',Impact,sans-serif;
   text-transform:uppercase;letter-spacing:-.01em;font-size:var(--fs-btn);margin-bottom:10px}
 .btn-sem-som{background:none;border:none;cursor:pointer;text-decoration:underline;color:var(--ink-soft);
@@ -533,7 +535,7 @@ body{
   <div class="modal-som-caixa">
     <span class="modal-som-emoji" aria-hidden="true">🔊</span>
     <h2 id="modal-som-titulo">JOGA COM SOM?</h2>
-    <p id="modal-som-texto">A VELHA BRABA tem efeitos sonoros brabos. No celular o navegador segura o áudio até você liberar — toca no botão e o som sai.</p>
+    <p id="modal-som-texto">A VELHA BRABA tem efeitos sonoros brabos. No celular o navegador segura o áudio até você liberar — toca no botão e o som sai.<br><span class="dica-silencioso">📵 iPhone mudo? Tira do modo silencioso na chavinha lateral.</span></p>
     <button id="btn-ativar-som" class="btn btn-ativar-som">ATIVAR SOM 🔊</button>
     <button id="btn-sem-som" class="btn-sem-som">jogar no mudo</button>
   </div>
@@ -630,36 +632,59 @@ let dados = carregar();
 function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(dados)); } catch (e) {} }
 
 /* ===== Som (WebAudio sintetizado) ===== */
-let ctxAudio = null, audioDestravado = false, silencioEl = null;
-const SILENCIO_URI = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+let ctxAudio = null, masterGain = null, audioDestravado = false, mediaEl = null;
+const EH_IOS = (() => {
+  const ua = navigator.userAgent || '';
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+})();
 function garantirAudio() {
   if (!dados.somLigado) return null;
   try {
-    if (!ctxAudio) ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+    if (!ctxAudio) {
+      ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = ctxAudio.createGain();
+      masterGain.gain.value = 0.9;
+      let viaMidia = false;
+      // iOS corta o WebAudio no modo silencioso. Roteando a saída por um <audio>
+      // via MediaStream, o som vai pelo canal de MÍDIA — que ignora a chavinha.
+      if (EH_IOS && ctxAudio.createMediaStreamDestination) {
+        try {
+          const dest = ctxAudio.createMediaStreamDestination();
+          mediaEl = document.createElement('audio');
+          mediaEl.setAttribute('playsinline', '');
+          mediaEl.srcObject = dest.stream;
+          masterGain.connect(dest);
+          viaMidia = true;
+        } catch (e) { viaMidia = false; mediaEl = null; }
+      }
+      if (!viaMidia) masterGain.connect(ctxAudio.destination);
+    }
     if (ctxAudio.state === 'suspended') ctxAudio.resume();
     return ctxAudio;
   } catch (e) { return null; }
 }
-/* iOS: destrava o WebAudio dentro do gesto e mantém um silêncio em loop no
-   canal de mídia — toca mesmo com a chavinha de silêncio do iPhone ligada. */
+/* Destrava o áudio dentro do gesto do usuário (exigência de iOS/Chrome) e
+   mantém o elemento de mídia tocando para o som sair mesmo no silencioso. */
 function destravarAudio() {
   const c = garantirAudio();
   if (!c) return;
+  if (c.state === 'suspended') c.resume();
+  if (mediaEl) mediaEl.play().catch(() => {});
   if (audioDestravado) return;
   audioDestravado = true;
   try {
     const b = c.createBuffer(1, 1, 22050);
     const s = c.createBufferSource();
-    s.buffer = b; s.connect(c.destination); s.start(0);
+    s.buffer = b; s.connect(masterGain || c.destination); s.start(0);
   } catch (e) {}
-  if (!silencioEl) {
-    try {
-      silencioEl = new Audio(SILENCIO_URI);
-      silencioEl.loop = true; silencioEl.volume = 0.001;
-      silencioEl.setAttribute('playsinline', '');
-    } catch (e) {}
-  }
-  if (silencioEl) silencioEl.play().catch(() => {});
+}
+/* Toca um som de confirmação SÓ depois do contexto retomar — no iOS, tocar
+   antes do resume() resolver não emite nada. */
+function tocarSomTeste() {
+  const c = garantirAudio();
+  if (!c) return;
+  if (c.state === 'suspended') c.resume().then(() => somVitoria(false)).catch(() => {});
+  else somVitoria(false);
 }
 function bip(freq, dur, atraso, tipo) {
   const c = garantirAudio();
@@ -668,7 +693,7 @@ function bip(freq, dur, atraso, tipo) {
   const g = c.createGain();
   o.type = tipo || 'square';
   o.frequency.value = freq;
-  o.connect(g); g.connect(c.destination);
+  o.connect(g); g.connect(masterGain || c.destination);
   const t = c.currentTime + (atraso || 0);
   g.gain.setValueAtTime(0.12, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
@@ -689,7 +714,7 @@ const somEmpate = () => bip(196, 0.15, 0, 'triangle');
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (ctxAudio && ctxAudio.state === 'suspended') ctxAudio.resume();
-  if (silencioEl && dados.somLigado) silencioEl.play().catch(() => {});
+  if (mediaEl && dados.somLigado) mediaEl.play().catch(() => {});
 });
 
 /* ===== Lógica pura do jogo ===== */
@@ -2879,7 +2904,7 @@ function fecharModalSom() {
 $('btn-ativar-som').addEventListener('click', () => {
   dados.somLigado = true;
   destravarAudio();              // o clique é o gesto que libera o WebAudio
-  somVitoria(false);            // toca um som de confirmação — a pessoa ouve que funcionou
+  tocarSomTeste();              // som de confirmação após o resume() — a pessoa ouve que funcionou
   fecharModalSom();
 });
 $('btn-sem-som').addEventListener('click', () => {
