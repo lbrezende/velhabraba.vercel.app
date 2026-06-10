@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Jogo da Velha Premium - Um clássico jogo da velha com design lúdico, colorido e moderno.">
+  <title>Jogo da Velha Premium</title>
+  
+  <!-- Google Fonts for playful and bold typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Reset and Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --purple-bg-start: #8e2de2;
+      --purple-bg-end: #4a00e0;
+      --cell-empty: #ffffff;
+      --cell-x-bg: rgba(30, 144, 255, 0.15);
+      --cell-x-border: #1e90ff;
+      --cell-o-bg: rgba(212, 42, 255, 0.15);
+      --cell-o-border: #a200ff;
+      --gold-symbol: #fbc531;
+      --gold-shadow: #c29510;
+      --btn-grad-start: #00f0ff;
+      --btn-grad-end: #0072ff;
+      --btn-shadow: #004da3;
+      --btn-active-shadow: #002c5e;
+      --text-dark: #0c1033;
+      --text-white: #ffffff;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #0c081c;
+      color: var(--text-white);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      padding: 10px;
+    }
+
+    /* Mobile Container Wrapper (Simulating an iPhone-like screen on desktop) */
+    .phone-wrapper {
+      width: 100%;
+      max-width: 410px;
+      height: 840px;
+      background: linear-gradient(180deg, var(--purple-bg-start) 0%, var(--purple-bg-end) 100%);
+      border-radius: 40px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 
+                  0 0 0 12px #1c1a27, /* simulated outer bezel */
+                  0 0 0 13px #3c3a47; 
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2.2rem 1.8rem;
+    }
+
+    /* Notch simulation for phone look */
+    .phone-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 25px;
+      background: #1c1a27;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+      z-index: 5;
+    }
+
+    /* Playful abstract circles/blobs in background matching image */
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      filter: blur(20px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .blob-1 {
+      width: 180px;
+      height: 180px;
+      top: -20px;
+      left: -50px;
+      background: radial-gradient(circle, rgba(162, 0, 255, 0.4) 0%, transparent 80%);
+    }
+    .blob-2 {
+      width: 250px;
+      height: 250px;
+      bottom: -40px;
+      right: -60px;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.35) 0%, transparent 80%);
+    }
+    .blob-3 {
+      width: 150px;
+      height: 150px;
+      top: 45%;
+      left: -60px;
+      background: radial-gradient(circle, rgba(255, 42, 127, 0.25) 0%, transparent 80%);
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      z-index: 2;
+      margin-top: 10px;
+    }
+
+    .nav-btn {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+      color: var(--text-white);
+      outline: none;
+    }
+
+    .nav-btn:hover {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+      transform: scale(1.05);
+    }
+    .nav-btn:active {
+      transform: scale(0.95);
+    }
+
+    .nav-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* Coin Indicator capsule */
+    .coin-capsule {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      padding: 6px 16px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .coin-icon {
+      width: 18px;
+      height: 18px;
+      background: #fbc531;
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #7d5a00;
+      font-weight: 900;
+      animation: coinPulse 2s infinite alternate;
+    }
+
+    @keyframes coinPulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.15); }
+    }
+
+    /* Main Header Title Section */
+    .title-section {
+      text-align: center;
+      z-index: 2;
+      margin-top: 15px;
+    }
+
+    .select-level-title {
+      font-family: 'Arvo', Georgia, serif;
+      font-size: 1.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-white);
+      text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+      margin-bottom: 5px;
+    }
+
+    .turn-subtitle {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 800;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 4px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      min-height: 25px;
+    }
+
+    /* Tic Tac Toe Grid */
+    .grid-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 28px;
+      padding: 14px;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 12px;
+      margin: 1.5rem auto;
+      box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Cell Buttons */
+    .cell {
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: none;
+      outline: none;
+      position: relative;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Empty Cell styling (Pure White block as in image) */
+    .cell.empty {
+      background-color: var(--cell-empty);
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15), 0 10px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .cell.empty:hover {
+      transform: translateY(-2px);
+      background-color: #f5f5f5;
+    }
+
+    .cell.empty:active {
+      transform: translateY(2px);
+    }
+
+    /* Taken X Cell styling (Blue borders & background tint) */
+    .cell.cell-x {
+      background-color: var(--cell-x-bg);
+      border: 2px solid var(--cell-x-border);
+      box-shadow: inset 0 0 15px rgba(30, 144, 255, 0.2);
+      cursor: not-allowed;
+    }
+
+    /* Taken O Cell styling (Purple borders & background tint) */
+    .cell.cell-o {
+      background-color: var(--cell-o-bg);
+      border: 2px solid var(--cell-o-border);
+      box-shadow: inset 0 0 15px rgba(162, 0, 255, 0.2);
+      cursor: not-allowed;
+    }
+
+    /* Symbols SVG style */
+    .symbol-svg {
+      width: 58%;
+      height: 58%;
+      display: block;
+      filter: drop-shadow(0 4px 0 var(--gold-shadow));
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Winning Highlight cells */
+    .cell.winner-cell {
+      animation: pulseWin 0.6s infinite alternate;
+    }
+
+    @keyframes pulseWin {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.05); filter: brightness(1.2); }
+    }
+
+    /* Mode Buttons (At the bottom) */
+    .modes-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      z-index: 2;
+      margin-bottom: 15px;
+    }
+
+    /* Glass capsule premium button (matches the gradient buttons in image) */
+    .btn-mode {
+      width: 100%;
+      background: linear-gradient(180deg, var(--btn-grad-start) 0%, var(--btn-grad-end) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      border-radius: 50px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 var(--btn-shadow), 
+                  0 12px 20px rgba(0, 0, 0, 0.35),
+                  inset 0 2px 4px rgba(255, 255, 255, 0.4);
+      transition: all 0.15s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-mode:hover {
+      background: linear-gradient(180deg, #3dffff 0%, #1e85ff 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 var(--btn-shadow), 
+                  0 14px 22px rgba(0, 0, 0, 0.4),
+                  inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-mode:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 var(--btn-active-shadow), 
+                  0 4px 8px rgba(0, 0, 0, 0.3),
+                  inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Active game mode styling highlight */
+    .btn-mode.active-mode {
+      border-color: #ffd700;
+      animation: activePulse 2s infinite alternate;
+    }
+
+    @keyframes activePulse {
+      0% { box-shadow: 0 6px 0 var(--btn-shadow), 0 12px 20px rgba(0, 0, 0, 0.35), 0 0 10px rgba(255, 215, 0, 0.2); }
+      100% { box-shadow: 0 6px 0 var(--btn-shadow), 0 12px 20px rgba(0, 0, 0, 0.35), 0 0 20px rgba(255, 215, 0, 0.6); }
+    }
+
+    .btn-mode-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-mode-content svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--text-dark);
+    }
+
+    .vs-divider {
+      font-style: italic;
+      font-size: 0.9rem;
+      font-weight: 900;
+      opacity: 0.8;
+      margin: 0 2px;
+    }
+
+    /* Reset button text/styling */
+    .reset-link {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: color 0.2s ease;
+      z-index: 2;
+    }
+    .reset-link:hover {
+      color: var(--text-white);
+      text-decoration: underline;
+    }
+
+    /* Popup Overlay (Modal settings / Victory screen) */
+    .popup-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(12, 8, 28, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .popup-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .popup-content {
+      background: linear-gradient(135deg, #3c096c 0%, #10002b 100%);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      width: 85%;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+      transform: scale(0.85);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .popup-overlay.open .popup-content {
+      transform: scale(1);
+    }
+
+    .popup-icon {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 1.2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .popup-title {
+      font-family: 'Arvo', serif;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      color: #ffd700;
+    }
+
+    .popup-desc {
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
+    }
+
+    .popup-btn {
+      width: 100%;
+      background: linear-gradient(180deg, #fbc531 0%, #e1b12c 100%);
+      border: none;
+      border-radius: 30px;
+      padding: 12px;
+      font-weight: 800;
+      color: var(--text-dark);
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 4px 0 #b38600;
+      transition: all 0.1s ease;
+    }
+    
+    .popup-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #b38600;
+    }
+
+    /* Coins floating gain animation */
+    .coin-float {
+      position: absolute;
+      color: #ffd700;
+      font-weight: 900;
+      font-size: 1.4rem;
+      z-index: 10;
+      pointer-events: none;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      animation: floatUp 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(0.6); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: translateY(-80px) scale(1.1); opacity: 0; }
+    }
+
+    /* Difficulty Setting Badge in settings menu */
+    .diff-selector {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .diff-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .diff-btn.active {
+      background: var(--btn-grad-start);
+      color: var(--text-dark);
+      border-color: transparent;
+      font-weight: 800;
+    }
+
+    /* Screen layout responsiveness for browser viewports that are small */
+    @media (max-height: 850px) {
+      .phone-wrapper {
+        height: 100vh;
+        max-height: 780px;
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+      }
+      .phone-wrapper::before {
+        display: none; /* hide notch on small screens */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Simulated Phone Device Wrapper -->
+  <div class="phone-wrapper" id="game-stage">
+    
+    <!-- Organic glowing blobs -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <!-- Top Navigation / Status Header -->
+    <div class="top-bar">
+      <!-- Back Arrow Icon (Resets current match) -->
+      <button class="nav-btn" id="btn-back" aria-label="Voltar / Reiniciar Partida">
+        <svg viewBox="0 0 24 24">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+        </svg>
+      </button>
+
+      <!-- Coins Indicator Capsule -->
+      <div class="coin-capsule" id="coin-capsule">
+        <div class="coin-icon">$</div>
+        <span id="coin-count">500</span>
+      </div>
+
+      <!-- Settings Icon -->
+      <button class="nav-btn" id="btn-settings" aria-label="Configurações">
+        <svg viewBox="0 0 24 24">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Title and Active Turn info -->
+    <div class="title-section">
+      <h1 class="select-level-title" id="main-title">Jogo da Velha</h1>
+      <span class="turn-subtitle" id="turn-indicator">Carregando...</span>
+    </div>
+
+    <!-- Grid Board (9 cells, initially white/empty) -->
+    <div class="grid-container" role="grid" aria-label="Tabuleiro">
+      <button class="cell empty" data-index="0" id="cell-0" aria-label="Espaço 1"></button>
+      <button class="cell empty" data-index="1" id="cell-1" aria-label="Espaço 2"></button>
+      <button class="cell empty" data-index="2" id="cell-2" aria-label="Espaço 3"></button>
+      <button class="cell empty" data-index="3" id="cell-3" aria-label="Espaço 4"></button>
+      <button class="cell empty" data-index="4" id="cell-4" aria-label="Espaço 5"></button>
+      <button class="cell empty" data-index="5" id="cell-5" aria-label="Espaço 6"></button>
+      <button class="cell empty" data-index="6" id="cell-6" aria-label="Espaço 7"></button>
+      <button class="cell empty" data-index="7" id="cell-7" aria-label="Espaço 8"></button>
+      <button class="cell empty" data-index="8" id="cell-8" aria-label="Espaço 9"></button>
+    </div>
+
+    <!-- Game Mode Selection Buttons (Bottom) -->
+    <div class="modes-container">
+      
+      <!-- Player vs AI mode button -->
+      <button class="btn-mode active-mode" id="btn-mode-ai" onclick="changeMode('ai')">
+        <div class="btn-mode-content">
+          <span>jogar sozinho</span>
+        </div>
+      </button>
+
+      <!-- Player vs Player local mode button -->
+      <button class="btn-mode" id="btn-mode-local" onclick="changeMode('local')">
+        <div class="btn-mode-content">
+          <span>jogar de dois</span>
+        </div>
+      </button>
+
+      <span class="reset-link" id="link-clear-all">Limpar Tudo</span>
+    </div>
+
+  </div>
+
+  <!-- Win & Modal Notification overlay -->
+  <div class="popup-overlay" id="outcome-popup">
+    <div class="popup-content">
+      <div class="popup-icon" id="popup-badge"></div>
+      <h2 class="popup-title" id="popup-title">Vitória!</h2>
+      <p class="popup-desc" id="popup-desc">Você ganhou 100 moedas!</p>
+      <button class="popup-btn" id="popup-action-btn">Jogar De Novo</button>
+    </div>
+  </div>
+
+  <!-- Settings overlay -->
+  <div class="popup-overlay" id="settings-popup">
+    <div class="popup-content">
+      <div class="popup-icon">
+        <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; fill: #ffd700;">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      </div>
+      <h2 class="popup-title" style="color: #fff;">Configurações</h2>
+      <p class="popup-desc" style="margin-bottom: 0.8rem;">Dificuldade da I.A.:</p>
+      
+      <div class="diff-selector">
+        <button class="diff-btn" id="diff-easy" onclick="setDifficulty('easy')">Fácil</button>
+        <button class="diff-btn active" id="diff-hard" onclick="setDifficulty('hard')">Imbatível</button>
+      </div>
+
+      <button class="popup-btn" style="background: rgba(255,255,255,0.1); color: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.3); margin-bottom: 10px;" onclick="resetAllData()">Zerar Tudo</button>
+      <button class="popup-btn" id="settings-close-btn">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Game Logic script -->
+  <script>
+    // SVGs for custom 3D gold-styled X and O (matching the yellow bubble design in the screenshot)
+    const svgX = `
+      <svg class="symbol-svg" viewBox="0 0 100 100">
+        <path d="M 24 24 L 76 76 M 76 24 L 24 76" stroke="var(--gold-symbol)" stroke-width="17" stroke-linecap="round" fill="none" />
+      </svg>
+    `;
+    const svgO = `
+      <svg class="symbol-svg" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="26" stroke="var(--gold-symbol)" stroke-width="17" fill="none" />
+      </svg>
+    `;
+
+    // State
+    let board = ['', '', '', '', '', '', '', '', ''];
+    let currentPlayer = 'X'; // Player is always X, starts first
+    let gameActive = true;
+    let gameMode = 'ai'; // 'ai' or 'local'
+    let difficulty = 'hard'; // 'easy' or 'hard'
+    let coins = 500;
+
+    // DOM Elements
+    const cells = document.querySelectorAll('.cell');
+    const turnIndicator = document.getElementById('turn-indicator');
+    const coinCountEl = document.getElementById('coin-count');
+    const coinCapsule = document.getElementById('coin-capsule');
+    const btnModeAi = document.getElementById('btn-mode-ai');
+    const btnModeLocal = document.getElementById('btn-mode-local');
+    const linkClearAll = document.getElementById('link-clear-all');
+    const btnBack = document.getElementById('btn-back');
+    const btnSettings = document.getElementById('btn-settings');
+    
+    // Popups
+    const outcomePopup = document.getElementById('outcome-popup');
+    const popupBadge = document.getElementById('popup-badge');
+    const popupTitle = document.getElementById('popup-title');
+    const popupDesc = document.getElementById('popup-desc');
+    const popupActionBtn = document.getElementById('popup-action-btn');
+    
+    const settingsPopup = document.getElementById('settings-popup');
+    const settingsCloseBtn = document.getElementById('settings-close-btn');
+
+    // Winning combos
+    const winningCombinations = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+      [0, 4, 8], [2, 4, 6]             // diagonals
+    ];
+
+    // Load data from localStorage
+    function loadSavedData() {
+      const savedCoins = localStorage.getItem('tictactoe_coins');
+      if (savedCoins !== null) {
+        coins = parseInt(savedCoins);
+      } else {
+        coins = 500; // default start
+      }
+      
+      const savedMode = localStorage.getItem('tictactoe_mode');
+      if (savedMode !== null) {
+        gameMode = savedMode;
+      }
+      
+      const savedDiff = localStorage.getItem('tictactoe_diff');
+      if (savedDiff !== null) {
+        difficulty = savedDiff;
+      }
+
+      coinCountEl.textContent = coins;
+      updateModeButtons();
+      updateDifficultyButtons();
+    }
+
+    // Save coins
+    function saveCoins() {
+      localStorage.setItem('tictactoe_coins', coins);
+      coinCountEl.textContent = coins;
+    }
+
+    // Initialize Game
+    function init() {
+      loadSavedData();
+      
+      cells.forEach(cell => {
+        cell.addEventListener('click', () => handleCellClick(cell));
+      });
+
+      btnBack.addEventListener('click', () => {
+        animateButton(btnBack);
+        resetBoard();
+      });
+
+      btnSettings.addEventListener('click', () => {
+        settingsPopup.classList.add('open');
+      });
+
+      settingsCloseBtn.addEventListener('click', () => {
+        settingsPopup.classList.remove('open');
+      });
+
+      popupActionBtn.addEventListener('click', () => {
+        outcomePopup.classList.remove('open');
+        resetBoard();
+      });
+
+      linkClearAll.addEventListener('click', () => {
+        resetAllData();
+      });
+
+      resetBoard();
+    }
+
+    // Change Game Mode
+    function changeMode(mode) {
+      if (gameMode === mode) return;
+      gameMode = mode;
+      localStorage.setItem('tictactoe_mode', mode);
+      updateModeButtons();
+      resetBoard();
+    }
+
+    function updateModeButtons() {
+      if (gameMode === 'ai') {
+        btnModeAi.classList.add('active-mode');
+        btnModeLocal.classList.remove('active-mode');
+      } else {
+        btnModeAi.classList.remove('active-mode');
+        btnModeLocal.classList.add('active-mode');
+      }
+    }
+
+    // Difficulty settings
+    function setDifficulty(diff) {
+      difficulty = diff;
+      localStorage.setItem('tictactoe_diff', diff);
+      updateDifficultyButtons();
+    }
+
+    function updateDifficultyButtons() {
+      document.getElementById('diff-easy').classList.toggle('active', difficulty === 'easy');
+      document.getElementById('diff-hard').classList.toggle('active', difficulty === 'hard');
+    }
+
+    // Handle Cell Click
+    function handleCellClick(cell) {
+      const index = parseInt(cell.getAttribute('data-index'));
+      
+      // Prevent clicks on taken cells or when game is inactive
+      if (board[index] !== '' || !gameActive) return;
+      
+      // Prevent clicks if AI is currently playing
+      if (gameMode === 'ai' && currentPlayer === 'O') return;
+
+      playTurn(index);
+    }
+
+    // Execute a play turn
+    function playTurn(index) {
+      board[index] = currentPlayer;
+      
+      const cell = document.getElementById(`cell-${index}`);
+      cell.classList.remove('empty');
+      cell.classList.add(currentPlayer === 'X' ? 'cell-x' : 'cell-o');
+      cell.innerHTML = currentPlayer === 'X' ? svgX : svgO;
+      
+      // Check for win
+      const winningPattern = checkWin(board, currentPlayer);
+      if (winningPattern) {
+        endGame(currentPlayer, winningPattern);
+        return;
+      }
+      
+      // Check for draw
+      if (board.every(val => val !== '')) {
+        endGame('draw', null);
+        return;
+      }
+      
+      // Switch player
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updateTurnIndicator();
+
+      // Trigger AI if applicable
+      if (gameMode === 'ai' && currentPlayer === 'O' && gameActive) {
+        setTimeout(() => {
+          const aiMove = getAIMove();
+          playTurn(aiMove);
+        }, 500); // realistic delay
+      }
+    }
+
+    // Check Win condition
+    function checkWin(tempBoard, player) {
+      for (const pattern of winningCombinations) {
+        if (pattern.every(index => tempBoard[index] === player)) {
+          return pattern;
+        }
+      }
+      return null;
+    }
+
+    // Update Turn Indicator Text
+    function updateTurnIndicator() {
+      if (gameActive) {
+        if (currentPlayer === 'X') {
+          turnIndicator.textContent = gameMode === 'ai' ? 'Sua Vez (X)' : 'Vez de X';
+          turnIndicator.style.color = '#38bdf8';
+        } else {
+          turnIndicator.textContent = gameMode === 'ai' ? 'I.A. pensando...' : 'Vez de O';
+          turnIndicator.style.color = '#e0aaff';
+        }
+      }
+    }
+
+    // End Game states
+    function endGame(winner, winningPattern) {
+      gameActive = false;
+      
+      if (winner === 'draw') {
+        turnIndicator.textContent = 'Empate!';
+        turnIndicator.style.color = '#ffffff';
+        
+        setTimeout(() => {
+          showOutcomePopup('Empate!', 'Ninguém levou as moedas nesta rodada. Tente novamente!', `
+            <div style="display: flex; gap: 4px; width: 60px; height: 60px;">
+              ${svgX} ${svgO}
+            </div>
+          `);
+        }, 800);
+      } else {
+        turnIndicator.textContent = `Vencedor: ${winner}!`;
+        turnIndicator.style.color = winner === 'X' ? '#ffd700' : '#ff5e5e';
+        
+        // Highlight winning cells
+        winningPattern.forEach(idx => {
+          document.getElementById(`cell-${idx}`).classList.add('winner-cell');
+        });
+
+        // Coins logic
+        setTimeout(() => {
+          if (winner === 'X') {
+            let winPrize = gameMode === 'ai' ? 100 : 50;
+            coins += winPrize;
+            saveCoins();
+            spawnCoinsFloatingEffect(winPrize);
+            showOutcomePopup('Vitória!', `Parabéns! Você ganhou ${winPrize} moedas.`, svgX);
+          } else {
+            // Player lost (only in AI mode)
+            let lossCost = difficulty === 'hard' ? 50 : 25;
+            coins = Math.max(0, coins - lossCost);
+            saveCoins();
+            showOutcomePopup('Derrota!', `A Inteligência Artificial levou a melhor. Você perdeu ${lossCost} moedas!`, svgO);
+          }
+        }, 800);
+      }
+    }
+
+    // Floating Coins visual reward
+    function spawnCoinsFloatingEffect(amount) {
+      const stage = document.getElementById('game-stage');
+      const effect = document.createElement('div');
+      effect.className = 'coin-float';
+      effect.textContent = `+${amount} $`;
+      
+      // Spawn near the coin capsule
+      const rect = coinCapsule.getBoundingClientRect();
+      const parentRect = stage.getBoundingClientRect();
+      
+      effect.style.left = `${rect.left - parentRect.left + 20}px`;
+      effect.style.top = `${rect.top - parentRect.top + 30}px`;
+      
+      stage.appendChild(effect);
+      setTimeout(() => effect.remove(), 1200);
+    }
+
+    // Display Popup Overlay
+    function showOutcomePopup(title, desc, badgeHTML) {
+      popupTitle.textContent = title;
+      popupDesc.textContent = desc;
+      popupBadge.innerHTML = badgeHTML;
+      
+      if (title === 'Vitória!') {
+        popupTitle.style.color = '#fbc531';
+      } else if (title === 'Derrota!') {
+        popupTitle.style.color = '#ff5e5e';
+      } else {
+        popupTitle.style.color = '#ffffff';
+      }
+      
+      outcomePopup.classList.add('open');
+    }
+
+    // Reset current board for a new round
+    function resetBoard() {
+      board = ['', '', '', '', '', '', '', '', ''];
+      currentPlayer = 'X';
+      gameActive = true;
+
+      cells.forEach(cell => {
+        cell.className = 'cell empty';
+        cell.innerHTML = '';
+      });
+
+      updateTurnIndicator();
+    }
+
+    // Clear all localStorage records and reset board/coins
+    function resetAllData() {
+      localStorage.clear();
+      coins = 500;
+      gameMode = 'ai';
+      difficulty = 'hard';
+      
+      coinCountEl.textContent = coins;
+      updateModeButtons();
+      updateDifficultyButtons();
+      settingsPopup.classList.remove('open');
+      resetBoard();
+    }
+
+    // Button push feedback animation
+    function animateButton(btn) {
+      btn.style.transform = 'scale(0.9)';
+      setTimeout(() => btn.style.transform = 'none', 150);
+    }
+
+    // AI logic (Minimax for 'hard', Random for 'easy')
+    function getAIMove() {
+      if (difficulty === 'easy') {
+        const emptyCells = board.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+        return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      }
+      
+      // Imbatível mode (Minimax)
+      let bestScore = -Infinity;
+      let bestMove = 0;
+
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') {
+          board[i] = 'O';
+          let score = minimax(board, 0, false);
+          board[i] = '';
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = i;
+          }
+        }
+      }
+      return bestMove;
+    }
+
+    function minimax(tempBoard, depth, isMaximizing) {
+      // Evaluation scores
+      if (checkWin(tempBoard, 'O')) return 10 - depth;
+      if (checkWin(tempBoard, 'X')) return depth - 10;
+      if (tempBoard.every(cell => cell !== '')) return 0;
+
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (tempBoard[i] === '') {
+            tempBoard[i] = 'O';
+            let score = minimax(tempBoard, depth + 1, false);
+            tempBoard[i] = '';
+            bestScore = Math.max(score, bestScore);
+          }
+        }
+        return bestScore;
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (tempBoard[i] === '') {
+            tempBoard[i] = 'X';
+            let score = minimax(tempBoard, depth + 1, true);
+            tempBoard[i] = '';
+            bestScore = Math.min(score, bestScore);
+          }
+        }
+        return bestScore;
+      }
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,2857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VELHA BRABA — o jogo da velha que não é pra fracos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+:root{
+  --bg:#FFF8E7; --surface:#FFFFFF; --ink:#0D0D0D; --ink-soft:#4A4A4A;
+  --x:#FF2E88; --x-tint:#FFD6E8; --o:#00E5FF; --o-tint:#CFF9FF;
+  --acid:#FFE600; --lime:#B6FF00; --orange:#FF6B00; --purple:#8A36D6;
+  --win:#B6FF00; --lose:#C62828; --draw:#D9D9D9;
+  --shadow-s:4px 4px 0 var(--ink); --shadow-m:6px 6px 0 var(--ink);
+  --shadow-l:8px 8px 0 var(--ink); --shadow-xl:12px 12px 0 var(--ink);
+  --fs-hero:clamp(2.2rem,12vw,6rem);
+  --fs-overlay:clamp(2rem,9vw,4.5rem);
+  --fs-score:clamp(1.5rem,6vw,2.75rem);
+  --fs-h2:clamp(1.25rem,4.5vw,1.75rem);
+  --fs-btn:clamp(1rem,4vw,1.25rem);
+  --fs-body:clamp(0.875rem,3.5vw,1.0625rem);
+  --fs-label:clamp(0.8125rem,3.2vw,0.9375rem);
+  --b4:4px; --b3:3px;
+}
+html{overflow-x:hidden}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;
+  min-height:100vh; min-height:100dvh;
+  overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.ruido{position:fixed;inset:0;z-index:999;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px;}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ===== Telas ===== */
+.tela{display:none;flex-direction:column;align-items:center;
+  min-height:100vh;min-height:100dvh;width:100%;
+  padding:calc(clamp(16px,4vw,32px) + env(safe-area-inset-top))
+          calc(clamp(16px,4vw,32px) + env(safe-area-inset-right))
+          calc(clamp(16px,4vw,32px) + env(safe-area-inset-bottom))
+          calc(clamp(16px,4vw,32px) + env(safe-area-inset-left));}
+.tela.ativa{display:flex;animation:telaEntra .32s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes telaEntra{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== Tela inicial ===== */
+#tela-inicial{justify-content:center}
+.menu-wrap{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;gap:clamp(20px,5vw,36px)}
+.sticker{font-family:'Archivo Black','Arial Black',Impact,sans-serif;text-transform:uppercase;letter-spacing:-.02em;line-height:.92;
+  background:var(--acid);border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);
+  border-radius:999px;padding:8px 16px;font-size:var(--fs-label);display:inline-block}
+.sticker-edicao{transform:rotate(-6deg);margin-bottom:-18px;z-index:2;position:relative}
+.bloco-logo{text-align:center;transform:rotate(-2deg)}
+.logo{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-hero);text-transform:uppercase;
+  letter-spacing:-.02em;line-height:.92}
+.logo .palavra{display:inline-block;white-space:nowrap}
+.logo span.letra{display:inline-block;color:var(--ink);
+  animation:flutua 3s ease-in-out infinite alternate;animation-delay:calc(var(--i)*90ms)}
+.logo span.letra:nth-child(even){color:var(--acid);-webkit-text-stroke:3px var(--ink)}
+@supports not (-webkit-text-stroke:1px black){
+  .logo span.letra:nth-child(even){color:var(--acid);
+    text-shadow:2px 0 0 var(--ink),-2px 0 0 var(--ink),0 2px 0 var(--ink),0 -2px 0 var(--ink)}
+}
+@keyframes flutua{0%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}100%{transform:translateY(0) rotate(-2deg)}}
+@media(hover:hover){.logo span.letra{transition:transform .12s ease-out}
+  .logo span.letra:hover{animation:none;transform:translateY(-8px) rotate(-4deg)}}
+.subtitulo{font-weight:500;font-size:var(--fs-body);transform:rotate(1deg);margin-top:10px}
+.sticker-continuar{background:var(--lime);transform:rotate(3deg);cursor:pointer;font-family:'Archivo Black','Arial Black',Impact,sans-serif;
+  text-transform:uppercase;font-size:var(--fs-label);touch-action:manipulation;
+  transition:transform .12s ease-out,box-shadow .12s ease-out}
+@media(hover:hover){.sticker-continuar:hover{transform:rotate(3deg) translate(-2px,-2px);box-shadow:var(--shadow-m)}}
+.sticker-continuar:active{transform:rotate(3deg) translate(4px,4px);box-shadow:1px 1px 0 var(--ink);
+  transition:transform .08s ease-out,box-shadow .08s ease-out}
+.cards-modos{display:flex;flex-direction:column;gap:clamp(20px,5vw,28px);width:100%}
+.card{background:var(--surface);border:var(--b4) solid var(--ink);box-shadow:var(--shadow-l);
+  padding:20px;border-radius:16px;width:100%}
+.card-cpu{transform:rotate(.5deg)}
+.card-2p{transform:rotate(-.8deg)}
+.card h2{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-h2);text-transform:uppercase;
+  letter-spacing:-.02em;line-height:.92;margin-bottom:16px}
+.lista-dif{display:flex;flex-direction:column;gap:12px}
+.btn{border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);border-radius:12px;cursor:pointer;
+  font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:var(--fs-btn);color:var(--ink);
+  background:var(--surface);padding:12px 16px;min-height:44px;touch-action:manipulation;
+  transition:transform .12s ease-out,box-shadow .12s ease-out}
+@media(hover:hover){.btn:hover{transform:translate(-2px,-2px);box-shadow:var(--shadow-m)}}
+.btn:active{transform:translate(4px,4px);box-shadow:1px 1px 0 var(--ink);transition:transform .08s ease-out,box-shadow .08s ease-out}
+.btn-dif{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;position:relative;width:100%}
+.btn-dif .nome{font-family:'Archivo Black','Arial Black',Impact,sans-serif;text-transform:uppercase;letter-spacing:-.02em;line-height:.92;font-size:var(--fs-btn)}
+.btn-dif .sub{font-weight:500;font-size:var(--fs-label);text-transform:none}
+.btn-moleza{background:var(--lime)}
+.btn-casca{background:var(--orange)}
+.btn-impossivel{background:var(--purple);color:var(--bg)}
+.mini-sticker{position:absolute;top:-12px;right:-8px;transform:rotate(12deg);font-size:1.25rem;pointer-events:none}
+.sticker-tentativas{background:var(--acid);color:var(--ink);border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);
+  border-radius:999px;padding:4px 12px;font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:.75rem;text-transform:uppercase;
+  display:inline-block;transform:rotate(-3deg);margin-top:10px}
+.escolha-marca{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.escolha-marca .rotulo{font-weight:700;font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.08em}
+.btn-marca{width:44px;height:44px;padding:0;font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:1.25rem;border-radius:12px}
+.btn-marca[aria-pressed="true"].marca-bx{background:var(--x);color:var(--bg)}
+.btn-marca[aria-pressed="true"].marca-bo{background:var(--o)}
+.btn-2p{background:var(--o);width:100%}
+.rodape-menu{text-align:center;font-size:var(--fs-label);color:var(--ink-soft);display:flex;flex-direction:column;gap:6px;align-items:center}
+.recorde-casa{font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.08em}
+.btn-zerar{background:none;border:none;cursor:pointer;text-decoration:underline;color:var(--ink-soft);
+  font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:var(--fs-label);min-height:44px;padding:8px;touch-action:manipulation}
+.confirma-zerar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;font-weight:700;color:var(--ink)}
+.confirma-zerar button{background:none;border:none;cursor:pointer;text-decoration:underline;font-weight:700;
+  font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:var(--fs-label);min-height:44px;padding:8px;touch-action:manipulation}
+.confirma-zerar .apaga{color:var(--lose)}
+@media(min-width:768px){.cards-modos{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}}
+
+/* ===== Tela de jogo ===== */
+#tela-jogo{justify-content:flex-start}
+.jogo-wrap{width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center;gap:clamp(12px,3vw,20px)}
+.topo-jogo{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.btn-voltar{width:44px;height:44px;min-width:44px;padding:0;font-size:1.25rem;font-weight:700;border-radius:12px;flex-shrink:0}
+.sticker-modo{transform:rotate(4deg);font-size:.8125rem;padding:6px 14px;text-align:center}
+.sticker-modo.cor-moleza{background:var(--lime)}
+.sticker-modo.cor-cascagrossa{background:var(--orange)}
+.sticker-modo.cor-impossivel{background:var(--purple);color:var(--bg)}
+.sticker-modo.cor-dupla{background:var(--o)}
+.btn-som{width:44px;height:44px;min-width:44px;padding:0;font-size:1.125rem;border-radius:999px;flex-shrink:0}
+.placar{background:var(--ink);border:var(--b4) solid var(--ink);box-shadow:6px 6px 0 var(--acid);
+  border-radius:16px;display:grid;grid-template-columns:1fr 1fr 1fr;width:100%;padding:12px 8px;gap:4px}
+.placar .col{display:flex;flex-direction:column;align-items:center;gap:4px}
+.placar .rotulo{font-weight:700;font-size:.75rem;color:var(--bg);text-transform:uppercase;letter-spacing:.08em;
+  padding:2px 8px;border-radius:999px;transition:background .16s,color .16s}
+.placar .col.da-vez .rotulo{background:var(--acid);color:var(--ink)}
+.placar .num{font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:var(--fs-score);line-height:.92;
+  font-variant-numeric:tabular-nums}
+.placar .num-x{color:var(--x)}
+.placar .num-velha{color:var(--acid)}
+.placar .num-o{color:var(--o)}
+.placar .num.tick{animation:tick .24s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tick{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.chip-vez{font-family:'Archivo Black','Arial Black',Impact,sans-serif;text-transform:uppercase;letter-spacing:-.02em;line-height:.92;
+  border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);border-radius:999px;padding:10px 20px;
+  transform:rotate(-1.5deg);font-size:var(--fs-btn);background:var(--x);
+  transition:transform .2s ease-in-out,background .2s,color .2s}
+.chip-vez.flip{transform:rotate(-1.5deg) rotateX(90deg)}
+.chip-vez.pisca{animation:piscaChip .12s linear 2}
+@keyframes piscaChip{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+.chip-vez .pontinho{display:inline-block;animation:blinkPonto .6s linear infinite}
+.chip-vez .pontinho:nth-child(2){animation-delay:.2s}
+.chip-vez .pontinho:nth-child(3){animation-delay:.4s}
+@keyframes blinkPonto{0%,100%{opacity:1}50%{opacity:.2}}
+
+.tabuleiro-area{position:relative;width:min(88vw,60vh,420px);aspect-ratio:1}
+.tabuleiro{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  gap:clamp(8px,2.5vw,14px);width:100%;height:100%;
+  user-select:none;-webkit-user-select:none}
+.tabuleiro.shake{animation:shakeTab .45s ease-out}
+@keyframes shakeTab{0%{transform:translate(0,-6px) rotate(-1deg)}25%{transform:translate(0,6px) rotate(1deg)}50%{transform:translate(0,-4px) rotate(-.6deg)}75%{transform:translate(0,4px) rotate(.6deg)}100%{transform:translate(0,0) rotate(0)}}
+.tabuleiro.balanca{animation:balanca .5s ease-in-out}
+@keyframes balanca{0%{transform:rotate(0)}25%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}75%{transform:rotate(-1deg)}100%{transform:rotate(0)}}
+.celula{background:var(--surface);border:var(--b4) solid var(--ink);box-shadow:var(--shadow-s);border-radius:8px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;
+  touch-action:manipulation;transition:background .1s,opacity .3s;padding:0}
+.celula.ocupada{cursor:not-allowed}
+.celula.press{transform:scale(.92);box-shadow:1px 1px 0 var(--ink);transition:transform .08s ease-out,box-shadow .08s ease-out}
+.celula.pop{animation:popCel .16s ease-out}
+@keyframes popCel{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+.celula.flash-x{animation:flashX .35s ease-out}
+@keyframes flashX{0%{background:var(--x-tint)}100%{background:var(--surface)}}
+.celula.flash-o{animation:flashO .35s ease-out}
+@keyframes flashO{0%{background:var(--o-tint)}100%{background:var(--surface)}}
+.celula.shake-cel{animation:shakeCel .2s linear}
+@keyframes shakeCel{0%{transform:translateX(-3px)}25%{transform:translateX(3px)}50%{transform:translateX(-2px)}75%{transform:translateX(2px)}100%{transform:translateX(0)}}
+.celula.vencedora{animation:pulsoVit .18s ease-in-out 3}
+@keyframes pulsoVit{0%,100%{background:var(--surface)}50%{background:var(--pulse-tint,var(--acid))}}
+.celula.apagada{background:#EFEFEF}
+.celula.meia{opacity:.6}
+.marca{width:72%;height:72%;display:block;transform:rotate(var(--rot-marca,0deg))}
+.marca svg{width:100%;height:100%;display:block;overflow:visible}
+.marca-x line{stroke:var(--x);stroke-width:14;stroke-linecap:round;stroke-dasharray:85;stroke-dashoffset:85}
+.marca-x line.t1{animation:traco 90ms cubic-bezier(.65,0,.35,1) forwards}
+.marca-x line.t2{animation:traco 90ms cubic-bezier(.65,0,.35,1) 90ms forwards}
+.marca-o circle{stroke:var(--o);stroke-width:14;stroke-linecap:round;fill:none;
+  stroke-dasharray:189;stroke-dashoffset:189;transform:rotate(-90deg);transform-origin:50% 50%;
+  animation:traco 280ms cubic-bezier(.65,0,.35,1) forwards}
+@keyframes traco{to{stroke-dashoffset:0}}
+.marca.sai{animation:marcaSai .25s ease-in forwards}
+@keyframes marcaSai{to{transform:scale(0) rotate(180deg)}}
+.ghost{position:absolute;inset:14%;opacity:0;pointer-events:none;transform:rotate(-8deg);transition:opacity .1s}
+.ghost svg{width:100%;height:100%}
+.ghost line{stroke:var(--x);stroke-width:14;stroke-linecap:round}
+.ghost circle{stroke:var(--o);stroke-width:14;fill:none}
+@media(hover:hover){
+  .tabuleiro.vez-x .celula:not(.ocupada):hover{background:var(--x-tint)}
+  .tabuleiro.vez-x .celula:not(.ocupada):hover .ghost-x{opacity:.12}
+  .tabuleiro.vez-o .celula:not(.ocupada):hover{background:var(--o-tint)}
+  .tabuleiro.vez-o .celula:not(.ocupada):hover .ghost-o{opacity:.12}
+}
+.linha-vitoria{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.badge-streak{background:var(--lime);border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);
+  border-radius:999px;padding:6px 16px;font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-label);
+  text-transform:uppercase;transform:rotate(2deg);display:none}
+.badge-streak.visivel{display:inline-block}
+.badge-streak.pop{animation:badgePop .22s cubic-bezier(.34,1.56,.64,1)}
+@keyframes badgePop{0%{transform:rotate(2deg) scale(1)}50%{transform:rotate(2deg) scale(1.35)}100%{transform:rotate(2deg) scale(1)}}
+.badge-streak.cai{animation:badgeCai .42s ease-in forwards}
+@keyframes badgeCai{from{transform:rotate(2deg) translateY(0);opacity:1}to{transform:rotate(28deg) translateY(60px);opacity:0}}
+.ticker{background:var(--ink);width:100%;overflow:hidden;border-radius:8px;padding:8px 0;display:none}
+.ticker.visivel{display:block}
+.ticker-inner{display:inline-block;white-space:nowrap;color:var(--acid);font-weight:400;font-size:var(--fs-label);
+  padding-left:100%;animation:tickerAnim 14s linear infinite;will-change:transform}
+@keyframes tickerAnim{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+
+/* ===== Overlay de fim ===== */
+#overlay-fim{position:fixed;inset:0;z-index:800;display:none;align-items:center;justify-content:center;
+  background:rgba(13,13,13,.55);padding:16px}
+#overlay-fim.ativa{display:flex}
+.card-fim{max-width:420px;width:88vw;border:5px solid var(--ink);box-shadow:var(--shadow-xl);border-radius:16px;
+  padding:clamp(20px,5vw,32px);text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;
+  max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;
+  animation:cardEntra .38s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes cardEntra{from{transform:scale(.6) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(-2deg);opacity:1}}
+.card-fim.fundo-win{background:var(--win)}
+.card-fim.fundo-lose{background:var(--lose);color:var(--bg)}
+.card-fim.fundo-draw{background:var(--draw)}
+.card-fim.fundo-x{background:var(--x);color:var(--ink)}
+.card-fim.fundo-o{background:var(--o)}
+.emoji-fim{font-size:3.5rem;transform:rotate(8deg);line-height:1}
+.headline-fim{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-overlay);text-transform:uppercase;
+  letter-spacing:-.02em;line-height:.92;overflow:hidden}
+.headline-fim .pal{display:inline-block;white-space:nowrap}
+.headline-fim .l{display:inline-block;animation:subir .3s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i)*40ms)}
+@keyframes subir{from{transform:translateY(110%)}to{transform:translateY(0)}}
+.sub-fim{font-size:var(--fs-body);font-weight:500}
+.placar-fim{font-weight:700;font-size:var(--fs-body);text-transform:uppercase;letter-spacing:.08em}
+.streak-fim{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-body);text-transform:uppercase}
+.streak-fim.sticker-raro{transform:rotate(-3deg);color:var(--ink);font-size:var(--fs-label)} /* empate raro da TIJOLADA: sticker dourado */
+.btn-revanche{background:var(--acid);width:100%;min-height:56px;font-family:'Archivo Black','Arial Black',Impact,sans-serif;
+  font-size:var(--fs-btn);text-transform:uppercase;letter-spacing:-.02em;color:var(--ink)}
+.btn-mudar{background:transparent;border:var(--b3) solid var(--ink);min-height:44px;width:100%;
+  text-transform:uppercase;letter-spacing:.08em;font-size:var(--fs-label);color:inherit}
+.card-fim.fundo-lose .btn-mudar{border-color:var(--bg);color:var(--bg)}
+
+/* ===== MODOS BRABOS ===== */
+.card-brabos{transform:rotate(-.4deg)}
+.btn-vbatata{background:var(--orange)}
+.btn-vamnesia{background:var(--o)}
+.btn-vtijolada{background:var(--lime)}
+.btn-torre{background:var(--acid)}
+.seletor-brabo{display:flex;flex-direction:column;gap:12px}
+.topo-seletor{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.topo-seletor .sticker{transform:rotate(-2deg)}
+.sticker-modo.cor-batata{background:var(--orange)}
+.sticker-modo.cor-amnesia{background:var(--o)}
+.sticker-modo.cor-tijolada{background:var(--lime)}
+.faixa-extras{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+.mini-extra{font-size:.75rem;padding:4px 10px}
+.mini-extra.rot-neg{transform:rotate(-3deg)}
+.mini-extra.rot-pos{transform:rotate(3deg)}
+#medidor-calor.calor-0{background:var(--lime)}
+#medidor-calor.calor-1{background:var(--acid)}
+#medidor-calor.calor-2{background:var(--orange)}
+#medidor-calor.calor-3{background:var(--x);color:var(--bg);animation:tremida .25s linear infinite}
+@keyframes tremida{0%{transform:rotate(-3deg) translateX(0)}25%{transform:rotate(-3deg) translateX(-1px)}75%{transform:rotate(-3deg) translateX(1px)}100%{transform:rotate(-3deg) translateX(0)}}
+.marca.de-cpu line{stroke:var(--o)}
+.celula .aviso-bomba{position:absolute;inset:6%;border:3px dashed var(--acid);border-radius:6px;display:flex;align-items:flex-start;justify-content:flex-end;font-size:.9rem;padding:2px 4px;pointer-events:none;animation:pulsoBomba 1s ease-in-out infinite;z-index:3}
+@keyframes pulsoBomba{0%,100%{opacity:.9}50%{opacity:.4}}
+.tabuleiro.bombas-hover .celula .aviso-bomba{opacity:0;animation:none}
+.tabuleiro.bombas-hover .celula:hover .aviso-bomba,
+.tabuleiro.bombas-hover .celula:focus-visible .aviso-bomba{opacity:.9}
+@media(hover:none){ /* touch: sem hover — CASCA mostra o aviso estático e discreto */
+  .tabuleiro.bombas-hover .celula .aviso-bomba{opacity:.45;animation:none}
+}
+.celula.explode{animation:explodeCel .15s linear 3}
+@keyframes explodeCel{0%,100%{background:var(--surface)}50%{background:var(--lose)}}
+.sticker-bum{position:absolute;top:50%;left:50%;z-index:7;transform:translate(-50%,-50%) rotate(-8deg);background:var(--x);color:var(--bg);font-size:1.5rem;padding:10px 22px;pointer-events:none}
+.marca.condenada{animation:condenada .9s ease-in-out infinite;outline:3px dashed var(--ink);outline-offset:4px;border-radius:10px}
+@keyframes condenada{0%,100%{opacity:1;transform:rotate(-3deg)}50%{opacity:.35;transform:rotate(3deg)}}
+.marca.puf-sai{animation:pufSai .4s ease-in forwards}
+@keyframes pufSai{0%{transform:scale(1) rotate(0)}40%{transform:scale(1.15) rotate(10deg);opacity:1}100%{transform:scale(0) rotate(40deg);opacity:0}}
+.puf{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-6deg);background:var(--acid);border:var(--b3) solid var(--ink);border-radius:999px;padding:4px 10px;font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:.8rem;pointer-events:none;animation:pufSobe .45s ease-out forwards;z-index:4}
+@keyframes pufSobe{from{opacity:1}to{opacity:0;transform:translate(-50%,-90%) rotate(6deg)}}
+.prorrogacao{background:var(--x);color:var(--bg);animation:entraTorto .35s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes entraTorto{from{transform:rotate(-14deg) translateY(-30px);opacity:0}to{transform:rotate(-4deg) translateY(0);opacity:1}}
+.riscado{text-decoration:line-through}
+.tabuleiro.t4x4{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:clamp(6px,2vw,10px)}
+.setas-colunas{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,2vw,10px);width:min(88vw,60vh,420px)}
+.seta-col{font-size:1.1rem;padding:4px 0;min-height:44px;font-weight:700}
+.seta-col:disabled{text-decoration:line-through;opacity:.5;cursor:not-allowed;transform:none!important}
+.celula.col-alvo:not(.ocupada){background:var(--x-tint)}
+.tabuleiro.modo-batata .celula:not(.ocupada):hover .ghost-o{opacity:0}
+.tabuleiro.modo-batata.vez-o .celula:not(.ocupada):hover{background:var(--surface)}
+.tabuleiro.modo-tijolada .celula:not(.ocupada):hover .ghost-x,
+.tabuleiro.modo-tijolada .celula:not(.ocupada):hover .ghost-o{opacity:0}
+.tabuleiro.modo-tijolada .celula.ocupada:not(:disabled){cursor:pointer} /* célula ocupada ainda solta tijolo na coluna */
+.regua-torre{display:flex;gap:8px;justify-content:center;width:100%;flex-wrap:wrap}
+.chefe{position:relative;font-size:.7rem;padding:4px 8px;background:var(--surface);transform:rotate(-2deg)}
+.chefe:nth-child(2){transform:rotate(2deg)}
+.chefe.atual{background:var(--acid)}
+.chefe.vencido::after{content:'✗';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--lose);font-size:1.6rem;font-family:'Archivo Black','Arial Black',Impact,sans-serif;transform:rotate(-12deg)}
+.sticker-pof{position:absolute;z-index:6;background:var(--bg);font-size:.7rem;padding:2px 8px;pointer-events:none;animation:pufSobe .4s ease-out forwards}
+#overlay-onboard{position:fixed;inset:0;z-index:850;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.55);padding:16px}
+#overlay-onboard.ativa{display:flex}
+.card-onboard{background:var(--acid)}
+.titulo-onboard{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-h2);text-transform:uppercase;letter-spacing:-.02em;line-height:.92}
+.onboard-frases{list-style:none;display:flex;flex-direction:column;gap:10px;font-size:var(--fs-body);font-weight:500;text-align:left;width:100%}
+.onboard-frases li{background:var(--surface);border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);border-radius:12px;padding:10px 14px}
+.onboard-frases li:nth-child(odd){transform:rotate(-1deg)}
+.onboard-frases li:nth-child(even){transform:rotate(1deg)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) rotate(-2deg);z-index:950;background:var(--ink);color:var(--acid);border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);border-radius:12px;padding:10px 16px;font-weight:700;font-size:var(--fs-label);max-width:88vw;opacity:0;pointer-events:none;transition:opacity .25s}
+#toast.visivel{opacity:1}
+@media(prefers-reduced-motion:reduce){
+  #medidor-calor.calor-3{animation:none!important}
+  .celula .aviso-bomba{animation:none!important;opacity:.9}
+  .marca.condenada{animation:none!important;opacity:.5;transform:none}
+  .celula.explode{animation:explodeCel .15s linear 1}
+}
+@media(orientation:landscape) and (max-height:540px){
+  /* 4x4: teto maior + gap menor para manter alvos de toque >= 44px */
+  .setas-colunas{width:min(88vw,58vh,380px);width:min(88vw,58svh,380px);gap:4px}
+  .tabuleiro-area:has(.t4x4){width:min(88vw,58vh,380px);width:min(88vw,58svh,380px)}
+  .tabuleiro.t4x4{gap:4px}
+  .faixa-extras{gap:4px}
+}
+
+:focus-visible{outline:4px dashed var(--ink);outline-offset:3px;box-shadow:0 0 0 7px var(--bg)}
+@media(max-width:359px){
+  :root{--b4:3px;--b3:2px}
+  .card-fim{border-width:4px}
+  .sticker-modo{font-size:.6875rem;padding:6px 10px}
+}
+@media(orientation:landscape) and (max-height:540px){
+  .tela{padding-top:calc(10px + env(safe-area-inset-top));
+    padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .jogo-wrap{gap:8px}
+  .tabuleiro-area{width:min(88vw,48vh,320px);width:min(88vw,48svh,320px)}
+  .placar{padding:6px 8px}
+  .placar .num{font-size:1.25rem}
+  .chip-vez{padding:5px 12px;font-size:.8125rem}
+  .ticker{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.15s!important}
+  .logo span.letra,.ticker-inner{animation:none!important}
+  .ticker-inner{padding-left:0}
+  .marca-x line,.marca-o circle{stroke-dashoffset:0!important}
+}
+</style>
+</head>
+<body>
+<div class="ruido" aria-hidden="true"></div>
+<main>
+  <!-- ===== TELA INICIAL ===== -->
+  <section id="tela-inicial" class="tela ativa" aria-label="Menu principal">
+    <div class="menu-wrap">
+      <div class="sticker sticker-edicao">EDIÇÃO FLIPERAMA ★</div>
+      <header class="bloco-logo">
+        <h1 class="logo" aria-label="VELHA BRABA">
+          <span class="palavra" aria-hidden="true"><span class="letra" style="--i:0">V</span><span class="letra" style="--i:1">E</span><span class="letra" style="--i:2">L</span><span class="letra" style="--i:3">H</span><span class="letra" style="--i:4">A</span></span>
+          <span aria-hidden="true"> </span>
+          <span class="palavra" aria-hidden="true"><span class="letra" style="--i:5">B</span><span class="letra" style="--i:6">R</span><span class="letra" style="--i:7">A</span><span class="letra" style="--i:8">B</span><span class="letra" style="--i:9">A</span></span>
+        </h1>
+        <p class="subtitulo">o jogo da velha que não é pra fracos</p>
+      </header>
+      <button id="btn-continuar" class="sticker sticker-continuar" hidden></button>
+      <div class="cards-modos">
+        <div class="card card-cpu">
+          <h2>VS A MÁQUINA 🤖</h2>
+          <div class="escolha-marca" role="group" aria-label="Jogar como X ou O">
+            <span class="rotulo">Jogar como:</span>
+            <button id="btn-marca-x" class="btn btn-marca marca-bx" aria-pressed="true" aria-label="Jogar como X">X</button>
+            <button id="btn-marca-o" class="btn btn-marca marca-bo" aria-pressed="false" aria-label="Jogar como O">O</button>
+          </div>
+          <div class="lista-dif">
+            <button class="btn btn-dif btn-moleza" data-modo="moleza">
+              <span class="nome">MOLEZA</span><span class="sub">ela tá nem aí</span>
+            </button>
+            <button class="btn btn-dif btn-casca" data-modo="cascagrossa">
+              <span class="nome">CASCA-GROSSA</span><span class="sub">vacilou, perdeu</span>
+            </button>
+            <button class="btn btn-dif btn-impossivel" data-modo="impossivel">
+              <span class="mini-sticker" aria-hidden="true">😈</span>
+              <span class="nome">IMPOSSÍVEL S.A.</span><span class="sub">ninguém venceu até hoje</span>
+            </button>
+          </div>
+          <span id="sticker-tentativas" class="sticker-tentativas" hidden></span>
+        </div>
+        <div class="card card-brabos">
+          <h2>MODOS BRABOS 🔥</h2>
+          <div id="lista-brabos" class="lista-dif">
+            <button class="btn btn-dif btn-vbatata" data-variante="batata">
+              <span class="nome">BATATA QUENTE 💣</span><span class="sub">a trinca é o vexame</span>
+            </button>
+            <button class="btn btn-dif btn-vamnesia" data-variante="amnesia">
+              <span class="nome">AMNÉSIA 👻</span><span class="sub">nada aqui dura</span>
+            </button>
+            <button class="btn btn-dif btn-vtijolada" data-variante="tijolada">
+              <span class="nome">TIJOLADA 🧱</span><span class="sub">a peça cai. você escolhe só a coluna.</span>
+            </button>
+          </div>
+          <div id="seletor-brabo" class="seletor-brabo" hidden>
+            <div class="topo-seletor">
+              <button id="btn-brabo-voltar" class="btn btn-voltar" aria-label="Voltar à lista de modos brabos">←</button>
+              <span id="titulo-brabo" class="sticker"></span>
+            </div>
+            <div class="lista-dif">
+              <button class="btn btn-dif btn-moleza" data-dif-brabo="moleza">
+                <span class="nome">MOLEZA</span><span class="sub" id="sub-brabo-moleza"></span>
+              </button>
+              <button class="btn btn-dif btn-casca" data-dif-brabo="cascagrossa">
+                <span class="nome">CASCA-GROSSA</span><span class="sub" id="sub-brabo-casca"></span>
+              </button>
+              <button class="btn btn-dif btn-impossivel" data-dif-brabo="impossivel">
+                <span class="nome">IMPOSSÍVEL S.A.</span><span class="sub" id="sub-brabo-impossivel"></span>
+              </button>
+              <button id="btn-torre" class="btn btn-dif btn-torre" data-dif-brabo="torre" hidden>
+                <span class="mini-sticker" aria-hidden="true">🏆</span>
+                <span class="nome">A TORRE 🧱🏆</span><span class="sub">três chefes. zero derrotas permitidas.</span>
+              </button>
+            </div>
+            <span id="info-brabo" class="sticker-tentativas" hidden></span>
+          </div>
+        </div>
+        <div class="card card-2p">
+          <h2>MANO A MANO</h2>
+          <button class="btn btn-2p" data-modo="dupla">2 JOGADORES NO MESMO APARELHO</button>
+        </div>
+      </div>
+      <footer class="rodape-menu">
+        <span id="recorde-casa" class="recorde-casa" hidden></span>
+        <span>feito de tinta e rancor.</span>
+        <button id="btn-zerar" class="btn-zerar">ZERAR PLACAR</button>
+        <div id="confirma-zerar" class="confirma-zerar" hidden>
+          <span>APAGAR TUDO? SEM CHORO DEPOIS.</span>
+          <button id="btn-apaga" class="apaga">APAGA LOGO</button>
+          <button id="btn-deixa">DEIXA QUIETO</button>
+        </div>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ===== TELA DE JOGO ===== -->
+  <section id="tela-jogo" class="tela" aria-label="Arena de jogo">
+    <div class="jogo-wrap">
+      <div class="topo-jogo">
+        <button id="btn-voltar" class="btn btn-voltar" aria-label="Voltar ao menu">←</button>
+        <span id="sticker-modo" class="sticker sticker-modo"></span>
+        <button id="btn-regras" class="btn btn-som" aria-label="Rever as regras do modo" hidden>?</button>
+        <button id="btn-som" class="btn btn-som" aria-label="Som" aria-pressed="true">🔊</button>
+      </div>
+      <div id="regua-torre" class="regua-torre" hidden>
+        <span class="sticker chefe" data-andar="1">😴 MOLEZA</span>
+        <span class="sticker chefe" data-andar="2">🤨 CASCA</span>
+        <span class="sticker chefe" data-andar="3">🤖 IMPOSSÍVEL</span>
+      </div>
+      <div class="placar" aria-label="Placar">
+        <div class="col col-x" id="col-x"><span class="rotulo" id="rotulo-x">VOCÊ</span><span class="num num-x" id="num-x">0</span></div>
+        <div class="col col-velha" id="col-velha"><span class="rotulo" id="rotulo-velha">VELHA</span><span class="num num-velha" id="num-velha">0</span></div>
+        <div class="col col-o" id="col-o"><span class="rotulo" id="rotulo-o">CPU</span><span class="num num-o" id="num-o">0</span></div>
+      </div>
+      <div id="faixa-extras" class="faixa-extras" hidden>
+        <span id="sticker-todox" class="sticker mini-extra rot-neg" hidden>TODO MUNDO É X</span>
+        <span id="medidor-calor" class="sticker mini-extra rot-neg" hidden></span>
+        <span id="contador-seguras" class="sticker mini-extra rot-pos" hidden></span>
+        <span id="chip-vivas-voce" class="sticker mini-extra rot-neg" hidden></span>
+        <span id="chip-vivas-cpu" class="sticker mini-extra rot-pos" hidden></span>
+        <span id="sticker-prorrogacao" class="sticker mini-extra prorrogacao" hidden>PRORROGAÇÃO ⚡</span>
+      </div>
+      <div id="chip-vez" class="chip-vez" aria-hidden="true">SUA VEZ</div>
+      <div id="setas-colunas" class="setas-colunas" role="group" aria-label="Escolher coluna" hidden>
+        <button class="btn seta-col" data-col="0" aria-label="coluna 1">↓</button>
+        <button class="btn seta-col" data-col="1" aria-label="coluna 2">↓</button>
+        <button class="btn seta-col" data-col="2" aria-label="coluna 3">↓</button>
+        <button class="btn seta-col" data-col="3" aria-label="coluna 4">↓</button>
+      </div>
+      <div class="tabuleiro-area">
+        <div id="tabuleiro" class="tabuleiro" role="group" aria-label="Tabuleiro do jogo da velha"></div>
+        <svg id="linha-vitoria" class="linha-vitoria" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <span id="badge-streak" class="badge-streak"></span>
+      <div id="ticker" class="ticker" aria-hidden="true"><span id="ticker-inner" class="ticker-inner"></span></div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== OVERLAY DE FIM ===== -->
+<div id="overlay-fim" role="dialog" aria-modal="true" aria-label="Fim de rodada">
+  <div id="card-fim" class="card-fim">
+    <div id="emoji-fim" class="emoji-fim" aria-hidden="true"></div>
+    <h2 id="headline-fim" class="headline-fim"></h2>
+    <p id="sub-fim" class="sub-fim"></p>
+    <p id="placar-fim" class="placar-fim"></p>
+    <p id="streak-fim" class="streak-fim" hidden></p>
+    <button id="btn-revanche" class="btn btn-revanche">REVANCHE JÁ!</button>
+    <button id="btn-mudar" class="btn btn-mudar">MUDAR MODO</button>
+  </div>
+</div>
+
+<!-- ===== OVERLAY ONBOARDING ===== -->
+<div id="overlay-onboard" role="dialog" aria-modal="true" aria-label="Como joga">
+  <div class="card-fim card-onboard">
+    <div id="onboard-emoji" class="emoji-fim" aria-hidden="true"></div>
+    <h2 id="onboard-titulo" class="titulo-onboard"></h2>
+    <ul id="onboard-frases" class="onboard-frases"></ul>
+    <button id="btn-bora" class="btn btn-revanche">BORA</button>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<div id="status-jogadas" class="visually-hidden" role="status" aria-live="polite"></div>
+<script>
+(() => {
+'use strict';
+
+/* ===== Utilidades ===== */
+const $ = id => document.getElementById(id);
+const sorteio = arr => arr[Math.floor(Math.random() * arr.length)];
+const reduz = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const vibrar = p => { if (navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} } };
+
+/* ===== Persistência ===== */
+const CHAVE = 'velhabraba_v2';
+const padrao = () => ({
+  placares: {
+    moleza: { voce: 0, cpu: 0, velha: 0 },
+    cascagrossa: { voce: 0, cpu: 0, velha: 0 },
+    impossivel: { voce: 0, cpu: 0, velha: 0 },
+    dupla: { x: 0, o: 0, velha: 0 },
+    batata: { voce: 0, cpu: 0 },
+    amnesia: { voce: 0, cpu: 0, velha: 0 },
+    tijolada: { voce: 0, cpu: 0, velha: 0 }
+  },
+  extras: {
+    batata: { pavioAtual: 0, pavioRecorde: 0, decifrou: false, decifrouProgresso: 0 },
+    amnesia: { maratonaAtual: 0, maratonaRecorde: 0 },
+    tijolada: { torreTrofeus: 0, torreQuedas: 0, torreMelhorAndar: 0 }
+  },
+  onboardingVisto: { batata: false, amnesia: false, tijolada: false },
+  streakAtual: 0,
+  recordeStreak: 0,
+  tentativasImpossivel: 0,
+  ultimaMsgIdx: {},
+  somLigado: true,
+  ultimoModo: null,
+  ultimaVariante: 'classica',
+  marcaJogador: 'X'
+});
+function carregar() {
+  const base = padrao();
+  try {
+    const salvo = JSON.parse(localStorage.getItem(CHAVE));
+    if (salvo && typeof salvo === 'object') {
+      for (const k of Object.keys(base)) { if (salvo[k] !== undefined && salvo[k] !== null) base[k] = salvo[k]; }
+      const ref = padrao().placares;
+      const salvoPlacares = (salvo.placares && typeof salvo.placares === 'object') ? salvo.placares : {};
+      base.placares = {};
+      for (const m of Object.keys(ref)) {
+        base.placares[m] = Object.assign({}, ref[m]);
+        const sp = salvoPlacares[m];
+        if (sp && typeof sp === 'object') {
+          for (const c of Object.keys(ref[m])) {
+            if (typeof sp[c] === 'number' && isFinite(sp[c]) && sp[c] >= 0) base.placares[m][c] = sp[c];
+          }
+        }
+      }
+      for (const k of ['streakAtual', 'recordeStreak', 'tentativasImpossivel']) {
+        if (typeof base[k] !== 'number' || !isFinite(base[k]) || base[k] < 0) base[k] = 0;
+      }
+      if (!base.ultimaMsgIdx || typeof base.ultimaMsgIdx !== 'object') base.ultimaMsgIdx = {};
+      base.somLigado = base.somLigado !== false;
+      if (base.marcaJogador !== 'X' && base.marcaJogador !== 'O') base.marcaJogador = 'X';
+      // extras dos modos brabos: merge aditivo com saneamento por tipo
+      const refEx = padrao().extras;
+      const salvoEx = (salvo.extras && typeof salvo.extras === 'object') ? salvo.extras : {};
+      base.extras = {};
+      for (const m of Object.keys(refEx)) {
+        base.extras[m] = Object.assign({}, refEx[m]);
+        const se = salvoEx[m];
+        if (se && typeof se === 'object') {
+          for (const c of Object.keys(refEx[m])) {
+            if (typeof refEx[m][c] === 'boolean') { if (typeof se[c] === 'boolean') base.extras[m][c] = se[c]; }
+            else if (typeof se[c] === 'number' && isFinite(se[c]) && se[c] >= 0) base.extras[m][c] = se[c];
+          }
+        }
+      }
+      const refOb = padrao().onboardingVisto;
+      const salvoOb = (salvo.onboardingVisto && typeof salvo.onboardingVisto === 'object') ? salvo.onboardingVisto : {};
+      base.onboardingVisto = {};
+      for (const m of Object.keys(refOb)) base.onboardingVisto[m] = salvoOb[m] === true;
+      if (['classica', 'batata', 'amnesia', 'tijolada'].indexOf(base.ultimaVariante) < 0) base.ultimaVariante = 'classica';
+    }
+  } catch (e) {}
+  return base;
+}
+let dados = carregar();
+function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(dados)); } catch (e) {} }
+
+/* ===== Som (WebAudio sintetizado) ===== */
+let ctxAudio = null;
+function garantirAudio() {
+  if (!dados.somLigado) return null;
+  try {
+    if (!ctxAudio) ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctxAudio.state === 'suspended') ctxAudio.resume();
+    return ctxAudio;
+  } catch (e) { return null; }
+}
+function bip(freq, dur, atraso, tipo) {
+  const c = garantirAudio();
+  if (!c) return;
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.type = tipo || 'square';
+  o.frequency.value = freq;
+  o.connect(g); g.connect(c.destination);
+  const t = c.currentTime + (atraso || 0);
+  g.gain.setValueAtTime(0.12, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const somMarca = m => bip(m === 'X' ? 220 : 330, 0.06);
+const somVitoria = marco => {
+  bip(523.25, 0.09, 0); bip(659.25, 0.09, 0.09); bip(783.99, 0.09, 0.18);
+  if (marco) bip(1046.5, 0.09, 0.27);
+};
+const somDerrota = () => { bip(330, 0.12, 0); bip(220, 0.12, 0.12); };
+const somEmpate = () => bip(196, 0.15, 0, 'triangle');
+/* pointerdown nem sempre conta como gesto válido no Safari iOS: touchend/click cobrem o desbloqueio */
+['pointerdown', 'touchend', 'click'].forEach(ev => {
+  document.addEventListener(ev, () => { garantirAudio(); }, { once: true, passive: true });
+});
+
+/* ===== Lógica pura do jogo ===== */
+const LINHAS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const outra = m => (m === 'X' ? 'O' : 'X');
+function vencedor(t) {
+  for (const l of LINHAS) {
+    if (t[l[0]] && t[l[0]] === t[l[1]] && t[l[1]] === t[l[2]]) return { marca: t[l[0]], linha: l };
+  }
+  if (t.every(Boolean)) return { marca: 'velha', linha: null };
+  return null;
+}
+const livres = t => t.map((v, i) => (v ? -1 : i)).filter(i => i >= 0);
+function casaVitoria(t, marca) {
+  for (const i of livres(t)) {
+    t[i] = marca;
+    const v = vencedor(t);
+    t[i] = null;
+    if (v && v.marca === marca) return i;
+  }
+  return -1;
+}
+function minimax(t, marcaMax, vez, prof, alfa, beta) {
+  const v = vencedor(t);
+  if (v) {
+    if (v.marca === 'velha') return 0;
+    return v.marca === marcaMax ? 10 - prof : prof - 10;
+  }
+  if (vez === marcaMax) {
+    let melhor = -Infinity;
+    for (const i of livres(t)) {
+      t[i] = vez;
+      const s = minimax(t, marcaMax, outra(vez), prof + 1, alfa, beta);
+      t[i] = null;
+      if (s > melhor) melhor = s;
+      if (melhor > alfa) alfa = melhor;
+      if (alfa >= beta) break; // poda alfa-beta
+    }
+    return melhor;
+  }
+  let melhor = Infinity;
+  for (const i of livres(t)) {
+    t[i] = vez;
+    const s = minimax(t, marcaMax, outra(vez), prof + 1, alfa, beta);
+    t[i] = null;
+    if (s < melhor) melhor = s;
+    if (melhor < beta) beta = melhor;
+    if (alfa >= beta) break; // poda alfa-beta
+  }
+  return melhor;
+}
+function melhorJogada(t, marca) {
+  const abertas = livres(t);
+  if (abertas.length === 9) return sorteio(abertas); // abertura: tudo empata, qualquer casa serve
+  let melhor = -Infinity, opcoes = [];
+  for (const i of abertas) {
+    t[i] = marca;
+    const s = minimax(t, marca, outra(marca), 1, -Infinity, Infinity);
+    t[i] = null;
+    if (s > melhor) { melhor = s; opcoes = [i]; }
+    else if (s === melhor) opcoes.push(i);
+  }
+  return sorteio(opcoes);
+}
+function jogadaCPU(t, cpu, humano, modo) {
+  if (jogo.variante === 'batata') return cpuBatata();
+  if (jogo.variante === 'amnesia') return cpuAmnesia();
+  if (jogo.variante === 'tijolada') return cpuTijolada();
+  if (modo === 'moleza') {
+    const ganha = casaVitoria(t, cpu);
+    if (ganha >= 0) return ganha;          // só completa a própria vitória quando óbvia
+    return sorteio(livres(t));             // nunca bloqueia de propósito
+  }
+  if (modo === 'cascagrossa') {
+    const ganha = casaVitoria(t, cpu);
+    if (ganha >= 0) return ganha;          // sempre vence quando possível
+    const bloqueia = casaVitoria(t, humano);
+    if (bloqueia >= 0) return bloqueia;    // bloqueia quando necessário
+    if (Math.random() < 0.3) return sorteio(livres(t));
+    return melhorJogada(t, cpu);
+  }
+  return melhorJogada(t, cpu);             // IMPOSSÍVEL S.A. — minimax perfeito
+}
+
+/* ===== Estado da partida ===== */
+const jogo = {
+  modo: null,            // 'moleza' | 'cascagrossa' | 'impossivel' | 'dupla'
+  variante: 'classica',  // 'classica' | 'batata' | 'amnesia' | 'tijolada'
+  tab: Array(9).fill(null),
+  vez: 'X',
+  quemComecou: 'X',
+  ativo: false,
+  travado: false,
+  marcaHumano: 'X',
+  marcaCPU: 'O',
+  proximoComeca: null,
+  // modos brabos
+  ultimaCasaHumano: -1,  // batata (cavalo) + tijolada (degrau)
+  cpuEncurralada: false, // batata: CPU forçada a explodir
+  filaH: [], filaC: [],  // amnésia: FIFO de marcas vivas
+  lances: 0,             // amnésia: contador p/ prorrogação e trava-40
+  prorrogacao: false,
+  hashesAm: [],          // amnésia: anti-loop (últimas 6 posições)
+  ultimaLiberadaHumano: -1,
+  provocouCondenadaCPU: false,
+  torreAndar: 0          // tijolada: 0 = fora d'A TORRE; 1..3 = andar atual
+};
+const ehCPU = () => jogo.modo !== 'dupla';
+let timerCPU = null, timerDemora = null, timersFim = [], timerTick = null, timerToast = null;
+function limparTimers() {
+  clearTimeout(timerCPU); clearTimeout(timerDemora);
+  clearInterval(timerTick); timerTick = null;
+  timersFim.forEach(clearTimeout); timersFim = [];
+}
+const agendarFim = (fn, ms) => { timersFim.push(setTimeout(fn, ms)); };
+
+/* ===== Textos ===== */
+const NOMES_MODO = { moleza: 'MOLEZA', cascagrossa: 'CASCA-GROSSA', impossivel: 'IMPOSSÍVEL S.A.', dupla: 'MANO A MANO' };
+const MSGS = {
+  vitoria: [
+    { h: 'AMASSOU!', s: 'a máquina vai precisar de terapia.' },
+    { h: 'VITÓRIA BRABA!', s: 'três na linha, zero piedade.' },
+    { h: 'QUEM É O CHEFE AGORA?', s: 'spoiler: é você.' },
+    { h: 'A CPU CHOROU EM BINÁRIO.', s: '01010011 01001111 01010011 = SOS.' }
+  ],
+  derrota: [
+    { h: 'A MÁQUINA MANDOU LEMBRANÇAS.', s: 'revanche ou desculpa?' },
+    { h: 'FOI POR POUCO. SÓ QUE NÃO.', s: 'ela nem usou tudo.' },
+    { h: 'ROBÔ 1 × 0 HUMANIDADE.', s: 'faça algo a respeito.' },
+    { h: 'ELA TÁ RINDO EM JAVASCRIPT.', s: 'vai deixar barato?' },
+    { h: 'PERDEU.', s: 'velha é você.' }
+  ],
+  empate: [
+    { h: 'DEU VELHA. LITERALMENTE.', s: 'ninguém levou. que feio.' },
+    { h: 'EMPATE? SÉRIO?', s: 'alguém precisa ousar mais.' },
+    { h: 'A VELHA DEU DE OMBROS.', s: 'desempata essa história.' }
+  ],
+  empateImpossivel: [
+    { h: 'VOCÊ SOBREVIVEU. 🏅', s: 'empatar com ela JÁ é vitória.' },
+    { h: 'ELA NÃO TE VENCEU.', s: 'anota isso no currículo.' },
+    { h: 'EMPATE NO IMPOSSÍVEL.', s: 'é o teto da espécie humana.' },
+    { h: 'A MÁQUINA SUOU FRIO.', s: 'quer dizer, esquentou. tanto faz.' }
+  ],
+  sub2p: ['lavada histórica.', 'o outro lado pede gelo.', 'casa cheia, plateia em choque.', 'revanche imediata ou covardia.'],
+  batataVitoria: [
+    { h: 'ELA SEGUROU A BATATA. 💥', s: 'explodiu em silício puro.' },
+    { h: 'PASSOU O MICO ADIANTE!', s: 'a trinca era dela. o vexame também.' },
+    { h: 'ENCURRALADA!', s: 'ela contou as 512 posições. todas perdiam.' },
+    { h: 'DESARMOU A MÁQUINA.', s: 'beep boop BUM.' }
+  ],
+  batataDerrota: [
+    { h: 'VOCÊ FEZ A TRINCA. QUE MICO.', s: 'em qualquer outro jogo isso é vitória. aqui é vergonha.' },
+    { h: 'BUM. ERA SUA MÃO NA BATATA.', s: 'sopra o dedo e tenta de novo.' },
+    { h: 'CAIU NA CASA BOMBA.', s: 'a caveira tava lá. piscando.' },
+    { h: 'TRÊS X. TODOS SEUS NO FINAL.', s: 'velha é você. e em chamas.' }
+  ],
+  amnesiaVitoria: [
+    { h: 'TRINCA ANTES DO ESQUECIMENTO.', s: 'a memória dela deu tela azul.' },
+    { h: 'VOCÊ LEMBROU. ELA NÃO.', s: 'amnésia é o novo nome dela.' },
+    { h: 'FECHOU NO VÁCUO!', s: 'a marca dela sumiu na hora errada. que pena. 😏' },
+    { h: 'ETERNO ENQUANTO DUROU.', s: 'spoiler: durou o suficiente.' }
+  ],
+  amnesiaDerrota: [
+    { h: 'PUF. ERA SUA DEFESA.', s: 'a CPU agradece a casa vaga.' },
+    { h: 'ASSOMBRADO.', s: 'ela fez a trinca na casa que VOCÊ liberou.' },
+    { h: 'SUA TRINCA EVAPOROU.', s: 'igual sua confiança.' },
+    { h: 'PERDEU NO ESQUECIMENTO.', s: 'velha é você. e com lapso de memória.' }
+  ],
+  amnesiaVelha: [
+    { h: 'VOCÊS DOIS TÊM AMNÉSIA.', s: '40 lances e ninguém lembrou de ganhar.' }
+  ],
+  tijoladaVitoria: [
+    { h: 'TIJOLO NA CARA DELA.', s: 'obra concluída. CPU demolida.' },
+    { h: 'TRINCA EM QUEDA LIVRE!', s: 'Newton aplaudiria. a CPU não.' },
+    { h: 'EMPILHOU E HUMILHOU.', s: 'três andares de vergonha pra ela.' },
+    { h: 'ENGENHARIA BRABA.', s: 'ela forneceu o andaime. você, a vitória.' }
+  ],
+  tijoladaDerrota: [
+    { h: 'VOCÊ CONSTRUIU O DEGRAU.', s: '"obrigada pelo degrau." — CPU' },
+    { h: 'SOTERRADO.', s: 'velha é você. e debaixo do entulho.' },
+    { h: 'DESPENCOU FOI VOCÊ.', s: 'queda com estilo, pelo menos? não.' },
+    { h: 'OBRA EMBARGADA.', s: 'volta pra planta baixa.' }
+  ],
+  tijoladaVelha: [
+    { h: 'EMPATE DE CONCRETO.', s: 'isso quase nunca acontece. printa e emoldura.' },
+    { h: 'DEU VELHA EM QUEDA LIVRE.', s: '16 peças e nenhuma ideia. parabéns aos envolvidos.' }
+  ]
+};
+/* ===== Modos brabos: definições ===== */
+const ORDEM_TORRE = ['moleza', 'cascagrossa', 'impossivel'];
+const INFO_VARIANTES = {
+  batata: {
+    nome: 'BATATA QUENTE 💣', emoji: '💣', selo: 'SEM EMPATE. SEM PERDÃO.',
+    subs: { moleza: 'ela explode sozinha às vezes', cascagrossa: 'ela aperta o cerco', impossivel: 'ela te deixa começar. gentileza? cilada.' },
+    onboarding: ['Aqui os DOIS jogam X — o seu é rosa, o da CPU é ciano.', 'Quem completar 3 X em linha PERDE na hora.', 'Empate não existe — alguém sempre estoura.'],
+    ticker: [
+      'vai, completa a trinca. eu deixo. 😏',
+      'tá quente, hein?',
+      'esse tabuleiro é um campo minado e você tá de chinelo.',
+      'eu sei as 512 posições de cor. e você, sabe contar até 7?',
+      'no IMPOSSÍVEL existe um jeito de me vencer. você não achou. de novo.',
+      'movimento de cavalo. pesquisa depois.'
+    ]
+  },
+  amnesia: {
+    nome: 'AMNÉSIA 👻', emoji: '👻', selo: 'A VELHA ESQUECEU ONDE MARCOU',
+    subs: { moleza: 'ela esquece até de ganhar', cascagrossa: 'ela espera o buraco abrir', impossivel: 'ela nunca esquece. você sim.' },
+    onboarding: ['Cada um só tem 3 marcas vivas no tabuleiro.', 'Botou a 4ª? A mais velha SOME — a que tá piscando é a próxima a vazar.', 'Empate não existe: joga até alguém cair.'],
+    ticker: [
+      'essa sua marca aí tá com os dias contados. 👻',
+      'eu nunca esqueço. você sim.',
+      'tá piscando. tchau, tchau. 👋',
+      'pode montar a trinca. eu espero ela sumir.',
+      'nada aqui é seu pra sempre. nem o centro.',
+      'planeja em volta do buraco, gênio.'
+    ]
+  },
+  tijolada: {
+    nome: 'TIJOLADA 🧱', emoji: '🧱', selo: 'GRAVIDADE BRABA',
+    subs: { moleza: 'ela tropeça no próprio tijolo', cascagrossa: 'ela viu sua diagonal antes de você', impossivel: 'perfeita. com uma rachadura.' },
+    onboarding: ['Escolhe a coluna e o tijolo cai até o fundo.', '3 da sua cor em linha — deitado, em pé ou na diagonal — vence.', 'Cuidado: todo tijolo seu pode virar degrau do inimigo.'],
+    ticker: [
+      'pensa em colunas, não em casas. dica grátis.',
+      'cuidado com o degrau. 🪜',
+      'esse tijolo aí ainda vai te custar caro.',
+      'eu já vi a diagonal. você claramente não.',
+      'coluna do meio de novo? previsível como a queda.',
+      'a gravidade trabalha pra mim.'
+    ]
+  }
+};
+const EMOJIS = { vitoria: ['🏆', '😎', '💥'], derrota: ['🤖', '💀'], empate: ['🥱', '🤝'] };
+const MARCOS = { 3: 'TRINCA! 3 SEGUIDAS!', 5: '5 SEGUIDAS — ISSO É BULLYING!', 7: '7 SEGUIDAS — DESLIGA O JOGO.', 10: '10?! VAI VIVER A VIDA.' };
+const TICKER_BASE = [
+  'sua vez. sem pressão. 😏',
+  'eu já vi essa jogada em 1997…',
+  'calculando sua derrota…',
+  'isso é tudo?',
+  'o centro tava livre, só digo isso.',
+  'beep boop: você vai cair no canto de novo.'
+];
+function msgSemRepetir(categoria, excluir) {
+  const lista = MSGS[categoria];
+  const idxs = lista.map((m, i) => i).filter(i => !excluir || excluir.indexOf(i) < 0);
+  let pos = Math.floor(Math.random() * idxs.length);
+  if (idxs.length > 1 && idxs[pos] === dados.ultimaMsgIdx[categoria]) pos = (pos + 1) % idxs.length;
+  dados.ultimaMsgIdx[categoria] = idxs[pos];
+  salvar();
+  return lista[idxs[pos]];
+}
+
+/* ===== Ticker de provocações ===== */
+let filaTicker = [];
+let baseTicker = [];
+let listaTickerAtiva = TICKER_BASE;
+function embaralhar(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function proximaProvocacao() {
+  if (filaTicker.length) return filaTicker.shift();
+  if (!baseTicker.length) baseTicker = embaralhar(listaTickerAtiva);
+  return baseTicker.shift();
+}
+function provocar(msg, urgente) {
+  filaTicker.unshift(msg);
+  if (urgente) { // falas críticas não esperam o ciclo de 14s: troca já e reinicia a animação
+    const el = $('ticker-inner');
+    el.textContent = proximaProvocacao() + '  +++';
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  }
+}
+function atualizarTicker() { $('ticker-inner').textContent = proximaProvocacao() + '  +++'; }
+
+/* ===== DOM: tabuleiro (parametrizado 3x3 / 4x4) ===== */
+const celulas = [];
+let tamanhoTab = 3;
+function montarTabuleiro(tam) {
+  tam = tam || 3;
+  tamanhoTab = tam;
+  const tab = $('tabuleiro');
+  tab.classList.toggle('t4x4', tam === 4);
+  tab.innerHTML = '';
+  celulas.length = 0;
+  for (let i = 0; i < tam * tam; i++) {
+    const b = document.createElement('button');
+    b.className = 'celula';
+    b.setAttribute('aria-label', 'casa ' + (i + 1) + ', vazia');
+    b.dataset.i = i;
+    b.innerHTML =
+      '<span class="ghost ghost-x" aria-hidden="true"><svg viewBox="0 0 100 100"><line x1="20" y1="20" x2="80" y2="80"/><line x1="80" y1="20" x2="20" y2="80"/></svg></span>' +
+      '<span class="ghost ghost-o" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30"/></svg></span>';
+    b.addEventListener('pointerdown', () => {
+      if (jogo.ativo && !jogo.travado && !jogo.tab[i]) b.classList.add('press');
+    });
+    b.addEventListener('pointerup', () => b.classList.remove('press'));
+    b.addEventListener('pointerleave', () => b.classList.remove('press'));
+    b.addEventListener('click', () => clicarCasa(i));
+    b.addEventListener('pointerenter', () => { if (jogo.variante === 'tijolada') destacarColuna(i % 4); });
+    b.addEventListener('pointerout', () => { if (jogo.variante === 'tijolada') limparDestaqueColuna(); });
+    b.addEventListener('focus', () => { if (jogo.variante === 'tijolada') destacarColuna(i % 4); });
+    b.addEventListener('blur', () => { if (jogo.variante === 'tijolada') limparDestaqueColuna(); });
+    tab.appendChild(b);
+    celulas.push(b);
+  }
+}
+function limparTabuleiroDOM() {
+  celulas.forEach((c, i) => {
+    c.querySelectorAll('.marca, .puf, .aviso-bomba, .sticker-pof').forEach(m => m.remove());
+    c.classList.remove('ocupada', 'apagada', 'meia', 'vencedora', 'pop', 'flash-x', 'flash-o', 'press', 'bomba', 'col-alvo', 'explode');
+    c.disabled = false;
+    c.style.removeProperty('--pulse-tint');
+    c.setAttribute('aria-label', 'casa ' + (i + 1) + ', vazia');
+  });
+  const bum = document.querySelector('.sticker-bum');
+  if (bum) bum.remove();
+  $('linha-vitoria').innerHTML = '';
+}
+function desenharMarca(i, marca) {
+  const cel = celulas[i];
+  const rot = (Math.random() * 10 - 5).toFixed(1);
+  const wrap = document.createElement('span');
+  wrap.className = 'marca marca-' + marca.toLowerCase();
+  wrap.style.setProperty('--rot-marca', rot + 'deg');
+  wrap.innerHTML = marca === 'X'
+    ? '<svg viewBox="0 0 100 100" aria-hidden="true"><line class="t1" x1="20" y1="20" x2="80" y2="80"/><line class="t2" x1="80" y1="20" x2="20" y2="80"/></svg>'
+    : '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="30"/></svg>';
+  cel.appendChild(wrap);
+  cel.classList.add('ocupada', 'pop', 'flash-' + marca.toLowerCase());
+  cel.setAttribute('aria-label', 'casa ' + (i + 1) + ', ' + marca);
+  setTimeout(() => cel.classList.remove('pop', 'flash-x', 'flash-o'), 400);
+}
+
+/* ===== DOM: indicador de vez e placar ===== */
+function textoVez() {
+  if (!ehCPU()) return jogo.vez === 'X' ? 'VEZ DO X' : 'VEZ DO O';
+  if (jogo.vez === jogo.marcaHumano) return 'SUA VEZ';
+  if (jogo.variante !== 'classica') return 'VEZ DELA<span class="pontinho">.</span><span class="pontinho">.</span><span class="pontinho">.</span>';
+  return 'CPU PENSANDO<span class="pontinho">.</span><span class="pontinho">.</span><span class="pontinho">.</span>';
+}
+function vezPlano() {
+  if (!ehCPU()) return 'Vez do ' + jogo.vez + '.';
+  return jogo.vez === jogo.marcaHumano ? 'Sua vez.' : 'Vez da CPU.';
+}
+function pintarChip(chip) {
+  const cpuVez = ehCPU() && jogo.vez === jogo.marcaCPU;
+  chip.style.background = cpuVez ? 'var(--purple)' : (jogo.vez === 'X' ? 'var(--x)' : 'var(--o)');
+  chip.style.color = cpuVez ? 'var(--bg)' : 'var(--ink)';
+  chip.innerHTML = textoVez();
+}
+function atualizarVez(animar) {
+  const chip = $('chip-vez');
+  if (animar && !reduz()) {
+    chip.classList.add('flip');
+    setTimeout(() => { pintarChip(chip); chip.classList.remove('flip'); }, 100);
+  } else {
+    pintarChip(chip);
+  }
+  $('col-x').classList.toggle('da-vez', jogo.vez === 'X');
+  $('col-o').classList.toggle('da-vez', jogo.vez === 'O');
+  const t = $('tabuleiro');
+  t.classList.toggle('vez-x', jogo.vez === 'X');
+  t.classList.toggle('vez-o', jogo.vez === 'O');
+}
+function placarDoModo() { return dados.placares[jogo.variante === 'classica' ? jogo.modo : jogo.variante]; }
+function valoresPlacar() {
+  const p = placarDoModo();
+  if (jogo.variante === 'batata') return { x: p.voce, velha: p.voce + p.cpu, o: p.cpu }; // meio = 💣 RODADAS
+  if (jogo.variante !== 'classica') return { x: p.voce, velha: p.velha, o: p.cpu };
+  if (!ehCPU()) return { x: p.x, velha: p.velha, o: p.o };
+  return jogo.marcaHumano === 'X'
+    ? { x: p.voce, velha: p.velha, o: p.cpu }
+    : { x: p.cpu, velha: p.velha, o: p.voce };
+}
+function atualizarPlacar(animarCol) {
+  const v = valoresPlacar();
+  const mapa = { x: 'num-x', velha: 'num-velha', o: 'num-o' };
+  for (const k of Object.keys(mapa)) {
+    const el = $(mapa[k]);
+    if (el.textContent !== String(v[k])) {
+      el.textContent = v[k];
+      if (animarCol) { el.classList.add('tick'); setTimeout(() => el.classList.remove('tick'), 300); }
+    }
+  }
+  const rv = $('rotulo-velha');
+  rv.classList.toggle('riscado', jogo.variante === 'amnesia');
+  rv.textContent = jogo.variante === 'batata' ? '💣 RODADAS' : 'VELHA';
+  if (jogo.variante !== 'classica') { $('rotulo-x').textContent = 'VOCÊ'; $('rotulo-o').textContent = 'CPU'; }
+  else if (!ehCPU()) { $('rotulo-x').textContent = 'X'; $('rotulo-o').textContent = 'O'; }
+  else if (jogo.marcaHumano === 'X') { $('rotulo-x').textContent = 'VOCÊ'; $('rotulo-o').textContent = 'CPU'; }
+  else { $('rotulo-x').textContent = 'CPU'; $('rotulo-o').textContent = 'VOCÊ'; }
+}
+function atualizarBadgeStreak(evento) {
+  const badge = $('badge-streak');
+  if (jogo.variante === 'tijolada') { badge.classList.remove('visivel', 'cai', 'pop'); return; }
+  if (jogo.variante === 'batata' || jogo.variante === 'amnesia') {
+    const nv = jogo.variante === 'batata' ? dados.extras.batata.pavioAtual : dados.extras.amnesia.maratonaAtual;
+    if (evento === 'quebrou' && badge.classList.contains('visivel') && !reduz()) {
+      badge.classList.add('cai');
+      setTimeout(() => { badge.classList.remove('visivel', 'cai'); }, 430);
+      return;
+    }
+    if (nv >= 1) {
+      badge.textContent = jogo.variante === 'batata'
+        ? ('🧨 PAVIO: ' + nv)
+        : ('MARATONA: ' + nv + ' SEM DESCANSAR EM PAZ 👻🔥');
+      badge.classList.add('visivel');
+      if (evento === 'subiu' && !reduz()) {
+        badge.classList.add('pop');
+        setTimeout(() => badge.classList.remove('pop'), 250);
+      }
+    } else {
+      badge.classList.remove('visivel');
+    }
+    return;
+  }
+  const n = dados.streakAtual;
+  if (evento === 'quebrou' && badge.classList.contains('visivel') && !reduz()) {
+    badge.classList.add('cai');
+    setTimeout(() => { badge.classList.remove('visivel', 'cai'); }, 430);
+    return;
+  }
+  if (ehCPU() && n >= 2) {
+    badge.textContent = '🔥 SÉRIE DE ' + n;
+    badge.classList.add('visivel');
+    if (evento === 'subiu' && !reduz()) {
+      badge.classList.add('pop');
+      setTimeout(() => badge.classList.remove('pop'), 250);
+    }
+  } else {
+    badge.classList.remove('visivel');
+  }
+}
+
+/* ===== Fluxo de jogada ===== */
+function clicarCasa(i) {
+  if (jogo.variante === 'batata') return clicarBatata(i);
+  if (jogo.variante === 'amnesia') return clicarAmnesia(i);
+  if (jogo.variante === 'tijolada') return clicarColuna(i % 4);
+  if (!jogo.ativo) return;
+  if (jogo.travado) return;
+  if (ehCPU() && jogo.vez !== jogo.marcaHumano) return;
+  if (jogo.tab[i]) { feedbackOcupada(i); return; }
+  clearTimeout(timerDemora);
+  jogar(i, jogo.vez);
+}
+function feedbackOcupada(i) {
+  const cel = celulas[i];
+  if (!reduz()) {
+    cel.classList.add('shake-cel');
+    setTimeout(() => cel.classList.remove('shake-cel'), 220);
+    const chip = $('chip-vez');
+    chip.classList.add('pisca');
+    setTimeout(() => chip.classList.remove('pisca'), 260);
+  }
+}
+function jogar(i, marca) {
+  jogo.tab[i] = marca;
+  desenharMarca(i, marca);
+  somMarca(marca);
+  vibrar(15);
+  const v = vencedor(jogo.tab);
+  if (v) {
+    $('status-jogadas').textContent = marca + ' na casa ' + (i + 1) + '.';
+    finalizarRodada(v);
+    return;
+  }
+  jogo.vez = outra(marca);
+  $('status-jogadas').textContent = marca + ' na casa ' + (i + 1) + '. ' + vezPlano();
+  atualizarVez(true);
+  if (ehCPU() && jogo.vez === jogo.marcaCPU) {
+    cpuPensar();
+  } else if (ehCPU()) {
+    armarTimerDemora();
+  }
+}
+function cpuPensar() {
+  jogo.travado = true;
+  const min = jogo.modo === 'moleza' ? 350 : 450;
+  const max = jogo.modo === 'moleza' ? 600 : 900;
+  const espera = reduz() ? 250 : min + Math.random() * (max - min);
+  timerCPU = setTimeout(() => {
+    if (!jogo.ativo) return;
+    const ameacaHumano = casaVitoria(jogo.tab, jogo.marcaHumano);
+    const casa = jogadaCPU(jogo.tab, jogo.marcaCPU, jogo.marcaHumano, jogo.modo);
+    if (ameacaHumano >= 0 && casa === ameacaHumano) provocar('bloqueei. viu?');
+    jogo.travado = false;
+    jogar(casa, jogo.marcaCPU); // jogar() já rearma o timer de demora quando a vez volta pro humano
+    if (jogo.ativo && casaVitoria(jogo.tab, jogo.marcaHumano) >= 0) provocar('epa. calma aí.');
+  }, espera);
+}
+function armarTimerDemora() {
+  clearTimeout(timerDemora);
+  if (!ehCPU()) return;
+  timerDemora = setTimeout(() => {
+    if (jogo.ativo && jogo.vez === jogo.marcaHumano) provocar('tá pensando ou dormiu?');
+  }, 6000);
+}
+/* ===== Linha de vitória ===== */
+function riscarLinha(linha, marca) {
+  const svg = $('linha-vitoria');
+  const area = svg.parentElement;
+  const w = area.clientWidth, h = area.clientHeight;
+  svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  const ra = area.getBoundingClientRect();
+  const centro = idx => {
+    const r = celulas[idx].getBoundingClientRect();
+    return [r.left - ra.left + r.width / 2, r.top - ra.top + r.height / 2];
+  };
+  const a = centro(linha[0]), b = centro(linha[2]);
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const comp = Math.hypot(dx, dy) || 1;
+  const ex = (dx / comp) * w * 0.06, ey = (dy / comp) * h * 0.06;
+  const d = 'M ' + (a[0] - ex) + ' ' + (a[1] - ey) + ' L ' + (b[0] + ex) + ' ' + (b[1] + ey);
+  const ns = 'http://www.w3.org/2000/svg';
+  const cor = marca === 'X' ? 'var(--x)' : 'var(--o)';
+  [[ 'var(--ink)', 14 ], [ cor, 8 ]].forEach(par => {
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('stroke', par[0]);
+    p.setAttribute('stroke-width', par[1]);
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('fill', 'none');
+    svg.appendChild(p);
+    if (reduz()) return;
+    const total = p.getTotalLength();
+    p.style.strokeDasharray = total;
+    p.style.strokeDashoffset = total;
+    p.style.transition = 'stroke-dashoffset 350ms cubic-bezier(.65,0,.35,1)';
+    requestAnimationFrame(() => requestAnimationFrame(() => { p.style.strokeDashoffset = '0'; }));
+  });
+  vibrar([20, 30, 20]);
+}
+
+/* ===== Confete (canvas, DPR) ===== */
+function confete(qtd, dur, coresCustom) {
+  if (reduz()) return;
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;z-index:900;pointer-events:none;width:100%;height:100%';
+  canvas.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(canvas);
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const cores = coresCustom || ['#FF2E88', '#00E5FF', '#FFE600', '#B6FF00', '#FF6B00'];
+  const parts = [];
+  for (let i = 0; i < qtd; i++) {
+    parts.push({
+      x: window.innerWidth / 2 + (Math.random() - 0.5) * window.innerWidth * 0.5,
+      y: window.innerHeight * 0.65,
+      vx: (Math.random() - 0.5) * 10,
+      vy: -(8 + Math.random() * 6),
+      tam: 6 + Math.random() * 6,
+      cor: sorteio(cores),
+      rot: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.3,
+      tri: Math.random() < 0.4
+    });
+  }
+  const t0 = performance.now();
+  function quadro(t) {
+    const dt = t - t0;
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    const alpha = dt > dur - 400 ? Math.max(0, (dur - dt) / 400) : 1;
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.35; p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.cor;
+      if (p.tri) {
+        ctx.beginPath();
+        ctx.moveTo(0, -p.tam / 2);
+        ctx.lineTo(p.tam / 2, p.tam / 2);
+        ctx.lineTo(-p.tam / 2, p.tam / 2);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillRect(-p.tam / 2, -p.tam / 2, p.tam, p.tam);
+      }
+      ctx.restore();
+    }
+    if (dt < dur) requestAnimationFrame(quadro);
+    else canvas.remove();
+  }
+  requestAnimationFrame(quadro);
+}
+
+/* ===== Overlay de fim ===== */
+function abrirOverlay(cfg) {
+  const card = $('card-fim');
+  card.className = 'card-fim fundo-' + cfg.fundo;
+  $('emoji-fim').textContent = cfg.emoji || '';
+  const hl = $('headline-fim');
+  hl.innerHTML = '';
+  hl.setAttribute('aria-label', cfg.headline); // SR lê a frase inteira, não letra a letra
+  let idx = 0;
+  cfg.headline.split(' ').forEach((palavra, pi) => {
+    if (pi > 0) hl.appendChild(document.createTextNode(' '));
+    const pal = document.createElement('span');
+    pal.className = 'pal'; // nowrap por palavra: quebra só ENTRE palavras
+    pal.setAttribute('aria-hidden', 'true');
+    for (const ch of Array.from(palavra)) {
+      const s = document.createElement('span');
+      s.className = 'l';
+      s.style.setProperty('--i', idx++);
+      s.textContent = ch;
+      pal.appendChild(s);
+    }
+    hl.appendChild(pal);
+  });
+  $('sub-fim').textContent = cfg.sub;
+  $('placar-fim').textContent = cfg.placarLinha;
+  const st = $('streak-fim');
+  if (cfg.streakLinha) { st.textContent = cfg.streakLinha; st.hidden = false; }
+  else { st.hidden = true; }
+  st.classList.toggle('sticker', !!cfg.streakSticker);
+  st.classList.toggle('sticker-raro', !!cfg.streakSticker);
+  $('overlay-fim').classList.add('ativa');
+  document.body.style.overflow = 'hidden';
+  $('status-jogadas').textContent = cfg.headline + ' — ' + cfg.sub;
+  setTimeout(() => $('btn-revanche').focus(), 60);
+}
+function fecharOverlay() {
+  $('overlay-fim').classList.remove('ativa');
+  document.body.style.overflow = '';
+}
+
+/* ===== Fim de rodada ===== */
+function finalizarRodada(v) {
+  jogo.ativo = false;
+  jogo.travado = true;
+  clearTimeout(timerCPU);
+  clearTimeout(timerDemora);
+  const p = placarDoModo();
+  const empate = v.marca === 'velha';
+  const vitoriaHumana = ehCPU() && !empate && v.marca === jogo.marcaHumano;
+  const derrotaHumana = ehCPU() && !empate && v.marca === jogo.marcaCPU;
+  let marcoMsg = null, recordeNovo = false, streakQuebrada = 0;
+
+  // placar + streak + quem começa a próxima
+  if (empate) {
+    p.velha++;
+    jogo.proximoComeca = outra(jogo.quemComecou); // empate: alterna quem começa
+  } else {
+    jogo.proximoComeca = outra(v.marca); // quem perdeu começa a próxima
+    if (!ehCPU()) { if (v.marca === 'X') p.x++; else p.o++; }
+    else if (vitoriaHumana) {
+      p.voce++;
+      dados.streakAtual++;
+      if (dados.streakAtual > dados.recordeStreak) { dados.recordeStreak = dados.streakAtual; recordeNovo = true; }
+      marcoMsg = MARCOS[dados.streakAtual] || null;
+    } else {
+      p.cpu++;
+      streakQuebrada = dados.streakAtual;
+      dados.streakAtual = 0;
+      if (jogo.modo === 'impossivel') dados.tentativasImpossivel++;
+    }
+  }
+  salvar();
+  atualizarPlacar(true);
+  if (ehCPU()) atualizarBadgeStreak(vitoriaHumana ? 'subiu' : (derrotaHumana ? 'quebrou' : null));
+
+  // monta conteúdo do overlay
+  let cfg;
+  const placarLinha = ehCPU()
+    ? 'VOCÊ ' + p.voce + ' × ' + p.cpu + ' CPU'
+    : 'X ' + p.x + ' × ' + p.o + ' O';
+  if (empate) {
+    if (ehCPU() && jogo.modo === 'impossivel') {
+      const m = msgSemRepetir('empateImpossivel');
+      cfg = { fundo: 'draw', emoji: '🤝', headline: m.h, sub: m.s, placarLinha: placarLinha };
+    } else {
+      const m = msgSemRepetir('empate');
+      cfg = { fundo: 'draw', emoji: sorteio(EMOJIS.empate), headline: m.h, sub: m.s, placarLinha: placarLinha };
+    }
+  } else if (!ehCPU()) {
+    cfg = {
+      fundo: v.marca === 'X' ? 'x' : 'o',
+      emoji: sorteio(EMOJIS.vitoria),
+      headline: v.marca === 'X' ? 'X DOMINOU!' : 'O DOMINOU!',
+      sub: msgSemRepetir('sub2p'),
+      placarLinha: placarLinha
+    };
+  } else if (vitoriaHumana) {
+    const m = msgSemRepetir('vitoria');
+    cfg = { fundo: 'win', emoji: sorteio(EMOJIS.vitoria), headline: m.h, sub: m.s, placarLinha: placarLinha };
+    if (marcoMsg) cfg.streakLinha = marcoMsg;
+    else if (recordeNovo && dados.recordeStreak >= 2) cfg.streakLinha = 'RECORDE PESSOAL: ' + dados.recordeStreak + ' 🔥';
+    else if (dados.streakAtual >= 2) cfg.streakLinha = '🔥 SÉRIE DE ' + dados.streakAtual;
+  } else {
+    const m = msgSemRepetir('derrota');
+    cfg = { fundo: 'lose', emoji: sorteio(EMOJIS.derrota), headline: m.h, sub: m.s, placarLinha: placarLinha };
+    if (streakQuebrada >= 2) cfg.streakLinha = 'série de ' + streakQuebrada + ' foi pro saco. recomeça.';
+  }
+
+  // sequência visual
+  const tab = $('tabuleiro');
+  if (empate) {
+    somEmpate();
+    if (!reduz()) {
+      tab.classList.add('balanca');
+      agendarFim(() => tab.classList.remove('balanca'), 550);
+    }
+    celulas.forEach((c, i) => agendarFim(() => c.classList.add('apagada'), i * 30));
+    agendarFim(() => abrirOverlay(cfg), reduz() ? 200 : 500);
+  } else {
+    const tint = v.marca === 'X' ? 'var(--x-tint)' : 'var(--o-tint)';
+    v.linha.forEach(i => {
+      celulas[i].style.setProperty('--pulse-tint', tint);
+      if (!reduz()) celulas[i].classList.add('vencedora');
+    });
+    if (vitoriaHumana || !ehCPU()) somVitoria(!!marcoMsg);
+    else somDerrota();
+    agendarFim(() => riscarLinha(v.linha, v.marca), 150);
+    if (!reduz()) {
+      agendarFim(() => {
+        tab.classList.add('shake');
+        agendarFim(() => tab.classList.remove('shake'), 500);
+      }, 400);
+    }
+    if (vitoriaHumana || !ehCPU()) {
+      agendarFim(() => confete(marcoMsg ? 220 : 130, marcoMsg ? 2400 : 1800), 450);
+    }
+    if (derrotaHumana) {
+      agendarFim(() => celulas.forEach(c => c.classList.add('meia')), 400);
+    }
+    agendarFim(() => abrirOverlay(cfg), reduz() ? 300 : 900);
+  }
+}
+
+/* =====================================================================
+   MODOS BRABOS — infra comum
+===================================================================== */
+function toast(txt) {
+  const t = $('toast');
+  t.textContent = txt;
+  t.classList.add('visivel');
+  clearTimeout(timerToast);
+  timerToast = setTimeout(() => t.classList.remove('visivel'), 3400);
+}
+function encerrarVariante() {
+  jogo.ativo = false;
+  jogo.travado = true;
+  clearTimeout(timerCPU); clearTimeout(timerDemora);
+  clearInterval(timerTick); timerTick = null;
+}
+function placarLinhaVariante() {
+  const p = placarDoModo();
+  return 'VOCÊ ' + p.voce + ' × ' + p.cpu + ' CPU';
+}
+
+/* =====================================================================
+   BATATA QUENTE 💣 — Notakto misère em 1 tabuleiro (regras puras)
+===================================================================== */
+const bitB = i => 1 << i;
+const maskDe = t => { let m = 0; for (let i = 0; i < 9; i++) if (t[i]) m |= bitB(i); return m; };
+function fechaTrinca(mask, i) {
+  const m = mask | bitB(i);
+  return LINHAS.some(l => l.indexOf(i) >= 0 && l.every(j => m & bitB(j)));
+}
+const livresB = mask => { const r = []; for (let i = 0; i < 9; i++) if (!(mask & bitB(i))) r.push(i); return r; };
+const segurasDe = mask => livresB(mask).filter(i => !fechaTrinca(mask, i));
+/* solver completo memoizado (512 estados): true se QUEM JOGA AGORA perde com jogo perfeito */
+const memoBatata = new Map();
+function perdeBatata(mask) {
+  if (memoBatata.has(mask)) return memoBatata.get(mask);
+  const seg = segurasDe(mask);
+  let r = true; // encurralado, ou todas as seguras entregam posição vencedora ao oponente
+  for (const s of seg) { if (perdeBatata(mask | bitB(s))) { r = false; break; } }
+  memoBatata.set(mask, r);
+  return r;
+}
+const cavalo = (a, b) => {
+  const dr = Math.abs(Math.floor(a / 3) - Math.floor(b / 3)), dc = Math.abs(a % 3 - b % 3);
+  return (dr === 1 && dc === 2) || (dr === 2 && dc === 1);
+};
+function cpuBatata() {
+  const mask = maskDe(jogo.tab);
+  const seg = segurasDe(mask);
+  const liv = livresB(mask);
+  if (jogo.modo === 'moleza') {
+    if (Math.random() < 0.15) return sorteio(liv); // pode explodir sozinha — comédia
+    if (!seg.length) return sorteio(liv);          // pânico: joga a bomba e perde
+    return sorteio(seg);
+  }
+  if (jogo.modo === 'cascagrossa') {
+    if (!seg.length) return sorteio(liv);          // todas são bomba: joga e perde
+    const mates = seg.filter(s => segurasDe(mask | bitB(s)).length === 0); // XEQUE-BATATA
+    if (mates.length) return sorteio(mates);
+    if (Math.random() < 0.2) return sorteio(seg);  // humaniza
+    let melhor = Infinity, ops = [];
+    for (const s of seg) {
+      const n = segurasDe(mask | bitB(s)).length;  // aperta o cerco
+      if (n < melhor) { melhor = n; ops = [s]; } else if (n === melhor) ops.push(s);
+    }
+    return sorteio(ops);
+  }
+  // IMPOSSÍVEL S.A. — solver perfeito
+  if (!seg.length) { // encurralada: joga a bomba mais distante do centro (drama)
+    let melhor = -1, ops = [];
+    for (const i of liv) {
+      const d = Math.abs(Math.floor(i / 3) - 1) + Math.abs(i % 3 - 1);
+      if (d > melhor) { melhor = d; ops = [i]; } else if (d === melhor) ops.push(i);
+    }
+    return sorteio(ops);
+  }
+  const venc = seg.filter(s => perdeBatata(mask | bitB(s)));
+  if (venc.length) {
+    if (jogo.ultimaCasaHumano >= 0) { // desempate temático: movimento de cavalo
+      const kav = venc.filter(s => cavalo(s, jogo.ultimaCasaHumano));
+      if (kav.length) return sorteio(kav);
+    }
+    return sorteio(venc);
+  }
+  // perdida (humano jogou perfeito): morre devagar — maximiza seguras restantes
+  let melhor = -1, ops = [];
+  for (const s of seg) {
+    const n = segurasDe(mask | bitB(s)).length;
+    if (n > melhor) { melhor = n; ops = [s]; } else if (n === melhor) ops.push(s);
+  }
+  return sorteio(ops);
+}
+/* --- BATATA: fluxo e UI --- */
+/* progresso do badge DECIFROU vive em dados.extras.batata.decifrouProgresso (persiste entre sessões) */
+function desenharMarcaBatata(i, quem) {
+  const cel = celulas[i];
+  const rot = (Math.random() * 10 - 5).toFixed(1);
+  const wrap = document.createElement('span');
+  wrap.className = 'marca marca-x' + (quem === 'O' ? ' de-cpu' : '');
+  wrap.style.setProperty('--rot-marca', rot + 'deg');
+  wrap.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><line class="t1" x1="20" y1="20" x2="80" y2="80"/><line class="t2" x1="80" y1="20" x2="20" y2="80"/></svg>';
+  cel.appendChild(wrap);
+  cel.classList.add('ocupada', 'pop', 'flash-x');
+  cel.setAttribute('aria-label', 'casa ' + (i + 1) + ', X ' + (quem === 'O' ? 'da CPU' : 'seu'));
+  setTimeout(() => cel.classList.remove('pop', 'flash-x'), 400);
+}
+function atualizarHudBatata() {
+  const mask = maskDe(jogo.tab);
+  const nX = 9 - livresB(mask).length;
+  const med = $('medidor-calor');
+  const nivel = nX >= 6 ? 3 : nX >= 4 ? 2 : nX >= 2 ? 1 : 0;
+  med.className = 'sticker mini-extra rot-neg calor-' + nivel;
+  med.textContent = ['FRIA', 'MORNA', 'QUENTE', 'EXPLOSIVA 🧨'][nivel];
+  const seg = segurasDe(mask);
+  if (jogo.modo !== 'impossivel') $('contador-seguras').textContent = 'SEGURAS: ' + seg.length;
+  // casas-bomba (MOLEZA: sempre; CASCA: hover/focus via CSS; IMPOSSÍVEL: nunca)
+  celulas.forEach((c, i) => {
+    const aviso = c.querySelector('.aviso-bomba');
+    const ehBomba = jogo.modo !== 'impossivel' && !jogo.tab[i] && fechaTrinca(mask, i);
+    if (ehBomba && !aviso) {
+      const s = document.createElement('span');
+      s.className = 'aviso-bomba';
+      s.setAttribute('aria-hidden', 'true');
+      s.textContent = '💀';
+      c.appendChild(s);
+      c.classList.add('bomba');
+    } else if (!ehBomba && aviso) {
+      aviso.remove();
+      c.classList.remove('bomba');
+    }
+    if (!jogo.tab[i]) c.setAttribute('aria-label', 'casa ' + (i + 1) + ', vazia' + (ehBomba ? ' — bomba: fecha trinca' : ''));
+  });
+  // tique-taque acelerando (1s -> 0,4s)
+  clearInterval(timerTick);
+  timerTick = setInterval(() => {
+    if (jogo.ativo && jogo.variante === 'batata') bip(1100, 0.02, 0, 'sine');
+  }, Math.max(400, 1000 - nX * 100));
+}
+function clicarBatata(i) {
+  if (!jogo.ativo || jogo.travado) return;
+  if (jogo.vez !== 'X') return;
+  if (jogo.tab[i]) { feedbackOcupada(i); return; }
+  clearTimeout(timerDemora);
+  jogarBatata(i, 'X'); // suicídio voluntário permitido
+}
+function jogarBatata(i, quem) {
+  const mask = maskDe(jogo.tab);
+  const explode = fechaTrinca(mask, i);
+  jogo.tab[i] = quem;
+  if (quem === 'X') jogo.ultimaCasaHumano = i;
+  desenharMarcaBatata(i, quem);
+  somMarca('X');
+  vibrar(15);
+  const nX = 9 - livresB(maskDe(jogo.tab)).length;
+  if (nX >= 5) vibrar(20);
+  if (explode) { // TODA trinca derruba quem colocou o último X; 2 linhas = 1 derrota só
+    const fatais = LINHAS.filter(l => l.indexOf(i) >= 0 && l.every(j => jogo.tab[j]));
+    finalizarBatata(quem, fatais);
+    return;
+  }
+  jogo.vez = outra(quem);
+  atualizarHudBatata();
+  let aviso = '';
+  const segDepois = segurasDe(maskDe(jogo.tab));
+  if (jogo.modo !== 'impossivel') aviso = ' seguras: ' + segDepois.length + '.'; // SR acompanha o contador
+  if (jogo.vez === 'X' && segDepois.length === 0) {
+    const nBombas = livresB(maskDe(jogo.tab)).length;
+    aviso = ' cuidado: ' + nBombas + ' casas explodem.';
+    provocar('todas explodem. escolhe seu fim. 💣', true);
+    if (!reduz()) celulas.forEach((c, k) => { if (!jogo.tab[k]) { c.classList.add('explode'); setTimeout(() => c.classList.remove('explode'), 500); } });
+  }
+  $('status-jogadas').textContent = (quem === 'O' ? 'CPU pôs X na casa ' : 'X na casa ') + (i + 1) + '. ' + vezPlano() + aviso;
+  atualizarVez(true);
+  if (nX === 3) provocar('tá esquentando…');
+  if (nX === 5) provocar('TÁ PEGANDO FOGO. 🔥');
+  if (nX === 6) provocar('um de nós explode agora. spoiler: 😏', true);
+  if (jogo.vez === 'O') cpuPensarBatata();
+  else armarTimerDemora();
+}
+function cpuPensarBatata() {
+  jogo.travado = true;
+  const espera = reduz() ? 250 : 450 + Math.random() * 450;
+  timerCPU = setTimeout(() => {
+    if (!jogo.ativo) return;
+    const encurralada = segurasDe(maskDe(jogo.tab)).length === 0;
+    jogo.cpuEncurralada = encurralada;
+    const casa = cpuBatata();
+    if (encurralada) { // derrota digna: anuncia ANTES de jogar e dá tempo de leitura
+      provocar('eu… não tenho pra onde ir. registra esse momento.', true);
+      $('status-jogadas').textContent = 'CPU: eu não tenho pra onde ir. Ela é obrigada a explodir.';
+      timerCPU = setTimeout(() => {
+        if (!jogo.ativo) return;
+        jogo.travado = false;
+        jogarBatata(casa, 'O');
+      }, reduz() ? 400 : 1300);
+      return;
+    }
+    jogo.travado = false;
+    jogarBatata(casa, 'O');
+  }, espera);
+}
+function finalizarBatata(perdedor, fatais) {
+  encerrarVariante();
+  const p = dados.placares.batata;
+  const ex = dados.extras.batata;
+  const humanoPerdeu = perdedor === 'X';
+  const encurralada = jogo.cpuEncurralada && !humanoPerdeu;
+  if (humanoPerdeu) {
+    p.cpu++;
+    ex.pavioAtual = 0;
+    if (jogo.modo === 'impossivel') ex.decifrouProgresso = 0; // persiste: só zera ao perder no IMPOSSÍVEL
+  } else {
+    p.voce++;
+    ex.pavioAtual++;
+    if (ex.pavioAtual > ex.pavioRecorde) ex.pavioRecorde = ex.pavioAtual;
+    if (jogo.modo === 'impossivel') {
+      ex.decifrouProgresso++;
+      if (ex.decifrouProgresso >= 3 && !ex.decifrou) {
+        ex.decifrou = true;
+        toast('3 seguidas no impossível. você achou O segredo.');
+      }
+    }
+  }
+  jogo.proximoComeca = jogo.modo === 'impossivel' ? 'X' : perdedor; // perdedor começa; IMPOSSÍVEL: humano sempre
+  salvar();
+  atualizarPlacar(true);
+  atualizarBadgeStreak(humanoPerdeu ? 'quebrou' : 'subiu');
+  let m;
+  if (encurralada) m = MSGS.batataVitoria[2]; // 'ENCURRALADA!' — reservada pro caso forçado
+  else if (humanoPerdeu) m = msgSemRepetir('batataDerrota', jogo.modo === 'impossivel' ? [2] : null); // [2] cita a caveira; overlay desligado no IMPOSSÍVEL
+  else m = msgSemRepetir('batataVitoria', [2]); // vitória comum nunca sorteia 'ENCURRALADA!'
+  const cfg = {
+    fundo: humanoPerdeu ? 'lose' : 'win',
+    emoji: humanoPerdeu ? '💥' : '🥔',
+    headline: m.h, sub: m.s,
+    placarLinha: placarLinhaVariante()
+  };
+  if (!humanoPerdeu && ex.pavioAtual >= 2) cfg.streakLinha = '🧨 PAVIO: ' + ex.pavioAtual;
+  if (ex.decifrou && !humanoPerdeu && jogo.modo === 'impossivel') cfg.streakLinha = 'DECIFROU A BATATA 🥔🧨';
+  // explosão
+  const tab = $('tabuleiro');
+  const casas = new Set();
+  fatais.forEach(l => l.forEach(i => casas.add(i)));
+  casas.forEach(i => celulas[i].classList.add('explode'));
+  bip(110, 0.2); bip(82, 0.3, 0.18);
+  vibrar([60, 40, 120]);
+  if (!reduz()) {
+    agendarFim(() => {
+      tab.classList.add('shake');
+      agendarFim(() => tab.classList.remove('shake'), 500);
+    }, 100);
+  }
+  const bum = document.createElement('span');
+  bum.className = 'sticker sticker-bum';
+  bum.textContent = 'BUM!';
+  bum.setAttribute('aria-hidden', 'true');
+  tab.parentElement.appendChild(bum);
+  agendarFim(() => bum.remove(), 1100);
+  if (humanoPerdeu) {
+    agendarFim(() => confete(90, 1500, ['#0D0D0D', '#2B2B2B', '#4A4A4A']), 350); // confete PRETO fúnebre
+    agendarFim(() => celulas.forEach(c => c.classList.add('meia')), 400);
+  } else {
+    agendarFim(() => confete(140, 1800), 400);
+  }
+  $('status-jogadas').textContent = humanoPerdeu
+    ? 'Você completou a trinca e explodiu. ' + m.h
+    : 'A CPU completou a trinca e explodiu. ' + m.h;
+  agendarFim(() => abrirOverlay(cfg), reduz() ? 300 : 900);
+}
+function novaRodadaBatata() {
+  jogo.tab = Array(9).fill(null);
+  limparTabuleiroDOM();
+  jogo.ultimaCasaHumano = -1;
+  jogo.cpuEncurralada = false;
+  jogo.vez = jogo.modo === 'impossivel' ? 'X' : (jogo.proximoComeca || 'X');
+  jogo.quemComecou = jogo.vez;
+  jogo.ativo = true;
+  jogo.travado = false;
+  $('tabuleiro').classList.add('modo-batata');
+  $('tabuleiro').classList.toggle('bombas-hover', jogo.modo === 'cascagrossa');
+  atualizarVez(false);
+  atualizarPlacar(false);
+  atualizarBadgeStreak(null);
+  atualizarHudBatata();
+  $('status-jogadas').textContent = 'Nova rodada de BATATA QUENTE. Todo mundo é X; trinca perde. ' + (jogo.vez === 'X' ? 'Você começa.' : 'A CPU começa.');
+  if (jogo.vez === 'O') cpuPensarBatata();
+  else armarTimerDemora();
+}
+
+/* =====================================================================
+   AMNÉSIA 👻 — velha infinita / vanishing marks (regras puras)
+===================================================================== */
+function vitoriaEm(t, marca) {
+  for (const l of LINHAS) if (t[l[0]] === marca && t[l[1]] === marca && t[l[2]] === marca) return l;
+  return null;
+}
+/* ordem exata: coloca -> remove a mais antiga se ficou com 4 -> SÓ ENTÃO checa trinca */
+function simularAm(t, fila, marca, casa) {
+  const t2 = t.slice();
+  let removida = -1;
+  if (fila.length === 3) { removida = fila[0]; t2[removida] = null; }
+  t2[casa] = marca;
+  return { vence: vitoriaEm(t2, marca), removida };
+}
+function ameacasAm(t, fila, marca) {
+  const r = [];
+  for (let i = 0; i < 9; i++) if (!t[i] && simularAm(t, fila, marca, i).vence) r.push(i);
+  return r;
+}
+const filaDe = marca => (marca === 'X' ? jogo.filaH : jogo.filaC);
+/* --- IA --- */
+const CANTOS = [0, 2, 6, 8];
+function paresVivosAm(st, marca) {
+  const fila = marca === 'X' ? st.fH : st.fC;
+  const cond = fila.length === 3 ? fila[0] : -1;
+  let n = 0;
+  for (const l of LINHAS) {
+    let vivas = 0, meias = 0, ocupadaOutro = false;
+    for (const j of l) {
+      if (st.t[j] === marca) { if (j === cond) meias++; else vivas++; }
+      else if (st.t[j]) ocupadaOutro = true;
+    }
+    if (ocupadaOutro) continue;
+    if (vivas === 2) n += 2;
+    else if (vivas === 1 && meias === 1) n += 1; // condenada conta METADE
+  }
+  return n;
+}
+function avaliarAm(st) {
+  let v = 10 * (paresVivosAm(st, 'O') - paresVivosAm(st, 'X')) / 2;
+  // BÔNUS-FANTASMA: casa da condenada do oponente conta como semi-vazia
+  const condH = st.fH.length === 3 ? st.fH[0] : -1;
+  if (condH >= 0) {
+    for (const l of LINHAS) {
+      if (l.indexOf(condH) >= 0 && l.filter(j => j !== condH).every(j => st.t[j] === 'O')) v += 4;
+    }
+  }
+  for (let i = 0; i < 9; i++) {
+    if (st.t[i] === 'O') v += (i === 4 ? 3 : (CANTOS.indexOf(i) >= 0 ? 1 : 0));
+    else if (st.t[i] === 'X') v -= (i === 4 ? 3 : (CANTOS.indexOf(i) >= 0 ? 1 : 0));
+  }
+  return v;
+}
+function aplicarAm(st, marca, casa) {
+  const fila = marca === 'X' ? st.fH : st.fC;
+  let removida = -1;
+  if (fila.length === 3) { removida = fila.shift(); st.t[removida] = null; }
+  st.t[casa] = marca;
+  fila.push(casa);
+  return removida;
+}
+function desfazerAm(st, marca, casa, removida) {
+  const fila = marca === 'X' ? st.fH : st.fC;
+  fila.pop();
+  st.t[casa] = null;
+  if (removida >= 0) { st.t[removida] = marca; fila.unshift(removida); }
+}
+const ESTOURO_AM = {};
+const ttAm = new Map();
+function chaveAm(st, vez) {
+  return st.t.map(x => x || '-').join('') + '|' + st.fH.join(',') + '|' + st.fC.join(',') + '|' + vez;
+}
+function abAm(st, vez, prof, alfa, beta, limite, deadline) {
+  if (Date.now() > deadline) throw ESTOURO_AM;
+  if (prof >= limite) return avaliarAm(st);
+  const a0 = alfa, b0 = beta;
+  const chave = chaveAm(st, vez) + '#' + (limite - prof);
+  const memo = ttAm.get(chave);
+  if (memo !== undefined) return memo;
+  const eu = vez === 'O';
+  let melhor = eu ? -Infinity : Infinity;
+  for (const c of livres(st.t)) {
+    const rem = aplicarAm(st, vez, c);
+    let s;
+    if (vitoriaEm(st.t, vez)) s = eu ? 1000 - prof : -(1000 - prof);
+    else s = abAm(st, outra(vez), prof + 1, alfa, beta, limite, deadline);
+    desfazerAm(st, vez, c, rem);
+    if (eu) { if (s > melhor) melhor = s; if (melhor > alfa) alfa = melhor; }
+    else { if (s < melhor) melhor = s; if (melhor < beta) beta = melhor; }
+    if (alfa >= beta) break;
+  }
+  if (melhor > a0 && melhor < b0) ttAm.set(chave, melhor); // só valores exatos
+  return melhor;
+}
+function buscarAmnesia() {
+  const st = { t: jogo.tab.slice(), fH: jogo.filaH.slice(), fC: jogo.filaC.slice() };
+  const cas = livres(st.t);
+  const deadline = Date.now() + 150; // orçamento de 150ms (iterative deepening)
+  ttAm.clear();
+  let resultados = cas.map(c => ({ c: c, v: 0 }));
+  try {
+    for (let limite = 2; limite <= 12; limite += 2) {
+      const parcial = [];
+      for (const c of cas) {
+        const rem = aplicarAm(st, 'O', c);
+        let v;
+        if (vitoriaEm(st.t, 'O')) v = 1000;
+        else v = abAm(st, 'X', 1, -Infinity, Infinity, limite, deadline);
+        desfazerAm(st, 'O', c, rem);
+        parcial.push({ c: c, v: v });
+      }
+      resultados = parcial;
+    }
+  } catch (e) { if (e !== ESTOURO_AM) throw e; }
+  resultados.sort((a, b) => b.v - a.v);
+  if (resultados[0].v >= 900) return resultados[0].c; // vence se puder — mate nunca é adiado por prorrogação/ruído
+  // PRORROGAÇÃO (lance 30+): entre as 2 melhores NÃO-perdedoras, maximiza ameaças vivas próprias
+  if (jogo.prorrogacao && resultados.length > 1) {
+    const candidatos = resultados.filter(r => r.v > -900);
+    const top2 = (candidatos.length ? candidatos : resultados).slice(0, 2);
+    let melhorC = top2[0].c, melhorN = -1;
+    for (const r of top2) {
+      const st2 = { t: jogo.tab.slice(), fH: jogo.filaH.slice(), fC: jogo.filaC.slice() };
+      aplicarAm(st2, 'O', r.c);
+      const n = ameacasAm(st2.t, st2.fC, 'O').length;
+      if (n > melhorN) { melhorN = n; melhorC = r.c; }
+    }
+    return melhorC;
+  }
+  // lance 25+: 10% de chance de jogar a 2ª melhor (quebra espelhos), nunca uma perdedora
+  if (jogo.lances >= 25 && resultados.length > 1 && resultados[1].v > -900 && Math.random() < 0.10) return resultados[1].c;
+  // anti-loop: entre lances de valor igual, evita repetir as últimas 6 posições
+  const top = resultados.filter(r => r.v === resultados[0].v);
+  if (top.length > 1 && jogo.hashesAm.length) {
+    const ineditos = top.filter(r => {
+      const st2 = { t: jogo.tab.slice(), fH: jogo.filaH.slice(), fC: jogo.filaC.slice() };
+      aplicarAm(st2, 'O', r.c);
+      return jogo.hashesAm.indexOf(chaveAm(st2, 'X')) < 0;
+    });
+    if (ineditos.length) return sorteio(ineditos).c;
+  }
+  return sorteio(top).c;
+}
+function maxAmeacasAmPos(t, fH, fC, candidatas) { // PRORROGAÇÃO: a casa que maximiza ameaças vivas próprias
+  let melhorN = -1, ops = [];
+  for (const c of candidatas) {
+    const st2 = { t: t.slice(), fH: fH.slice(), fC: fC.slice() };
+    aplicarAm(st2, 'O', c);
+    const n = ameacasAm(st2.t, st2.fC, 'O').length;
+    if (n > melhorN) { melhorN = n; ops = [c]; } else if (n === melhorN) ops.push(c);
+  }
+  return sorteio(ops);
+}
+function cpuAmnesia() {
+  const t = jogo.tab, fH = jogo.filaH, fC = jogo.filaC;
+  const vazias = livres(t);
+  const venceJa = ameacasAm(t, fC, 'O');
+  if (jogo.modo === 'moleza') {
+    if (jogo.prorrogacao) { // lance 30+: agressiva em TODAS as dificuldades
+      if (venceJa.length) return sorteio(venceJa);
+      return maxAmeacasAmPos(t, fH, fC, vazias);
+    }
+    if (venceJa.length && Math.random() < 0.5) return sorteio(venceJa);
+    return sorteio(vazias); // NUNCA bloqueia
+  }
+  if (jogo.modo === 'cascagrossa') {
+    if (venceJa.length) return sorteio(venceJa);
+    const amH = ameacasAm(t, fH, 'X'); // do ponto de vista DELE: a condenada dele sai antes do check
+    if (amH.length) {
+      if (amH.length === 1) return amH[0];
+      let melhor = -1, ops = [];
+      for (const c of amH) { // com 2+, ocupa a que participa de mais linhas da própria CPU
+        const n = LINHAS.filter(l => l.indexOf(c) >= 0 && l.some(j => t[j] === 'O')).length;
+        if (n > melhor) { melhor = n; ops = [c]; } else if (n === melhor) ops.push(c);
+      }
+      return sorteio(ops);
+    }
+    if (!jogo.prorrogacao && Math.random() < 0.2) return sorteio(vazias); // humaniza SÓ o passo heurístico (nunca pula o bloqueio)
+    // anti-auto-sabotagem: a condenada da CPU tranca uma linha do humano? a casa vai vagar com este
+    // lance e re-bloqueio literal é impossível — a defesa é criar ameaça forçante AGORA
+    const condCPU = fC.length === 3 ? fC[0] : -1;
+    const perigoCond = condCPU >= 0 &&
+      LINHAS.some(l => l.indexOf(condCPU) >= 0 && l.filter(j => j !== condCPU).every(j => t[j] === 'X'));
+    const condH2 = fH.length === 3 ? fH[0] : -1;
+    let melhorS = -Infinity, ops = [];
+    for (const c of vazias) {
+      let s = c === 4 ? 3 : (CANTOS.indexOf(c) >= 0 ? 2 : 1);
+      for (const l of LINHAS) {
+        if (l.indexOf(c) < 0) continue;
+        const outros = l.filter(j => j !== c);
+        const xs = outros.filter(j => t[j] === 'X');
+        if (xs.length && !(xs.length === 1 && xs[0] === condH2)) continue; // condenada do humano = semi-vazia
+        const vivos = outros.filter(j => t[j] === 'O' && j !== condCPU).length;
+        if (vivos === 2) s += 4; // par vivo prestes a fechar
+        else if (vivos === 1) s += 1;
+        if (condH2 >= 0 && outros.indexOf(condH2) >= 0 && vivos >= 1) s += 2; // espera o buraco abrir
+      }
+      if (perigoCond) {
+        const st2 = { t: t.slice(), fH: fH.slice(), fC: fC.slice() };
+        aplicarAm(st2, 'O', c);
+        if (ameacasAm(st2.t, st2.fC, 'O').length) s += 6; // ameaça forçante compensa a casa que vai vagar
+      }
+      if (s > melhorS) { melhorS = s; ops = [c]; } else if (s === melhorS) ops.push(c);
+    }
+    if (jogo.prorrogacao) return maxAmeacasAmPos(t, fH, fC, ops); // lance 30+: desempata pela agressão
+    return sorteio(ops);
+  }
+  return buscarAmnesia(); // IMPOSSÍVEL S.A.
+}
+/* --- AMNÉSIA: fluxo e UI --- */
+let dicaCondenadaMostrada = false;
+function atualizarCondenadas() {
+  celulas.forEach((c, i) => {
+    const m = c.querySelector('.marca');
+    if (m && m.classList.contains('condenada')) {
+      m.classList.remove('condenada');
+      if (jogo.tab[i]) c.setAttribute('aria-label', 'casa ' + (i + 1) + ', ' + jogo.tab[i]);
+    }
+  });
+  for (const fila of [jogo.filaH, jogo.filaC]) {
+    if (fila.length === 3) {
+      const idx = fila[0];
+      const m = celulas[idx].querySelector('.marca');
+      if (m) m.classList.add('condenada');
+      celulas[idx].setAttribute('aria-label', 'casa ' + (idx + 1) + ', ' + (jogo.tab[idx] || '') + ', condenada — ' +
+        (fila === jogo.filaH ? 'sua marca mais antiga, some no seu próximo lance' : 'marca da CPU, some no próximo lance dela'));
+    }
+  }
+  if (jogo.filaC.length === 3 && !jogo.provocouCondenadaCPU) {
+    jogo.provocouCondenadaCPU = true;
+    provocar('finge que não viu a minha piscando. 😏');
+  }
+}
+function atualizarHudAmnesia() {
+  $('chip-vivas-voce').textContent = 'VOCÊ · VIVAS ' + jogo.filaH.length + '/3';
+  $('chip-vivas-cpu').textContent = 'CPU · VIVAS ' + jogo.filaC.length + '/3';
+}
+function animarSumico(i, marca) {
+  const cel = celulas[i];
+  const m = cel.querySelector('.marca');
+  cel.classList.remove('ocupada');
+  cel.setAttribute('aria-label', 'casa ' + (i + 1) + ', vazia');
+  if (m) {
+    m.classList.remove('condenada');
+    if (reduz()) m.remove();
+    else {
+      m.classList.add('puf-sai');
+      const puf = document.createElement('span');
+      puf.className = 'puf';
+      puf.setAttribute('aria-hidden', 'true');
+      puf.textContent = 'PUF';
+      cel.appendChild(puf);
+      setTimeout(() => { m.remove(); puf.remove(); }, 480);
+      cel.classList.add('flash-x');
+      setTimeout(() => cel.classList.remove('flash-x'), 120);
+    }
+  }
+  bip(900, 0.05, 0, 'sine'); bip(450, 0.06, 0.05, 'sine'); // whoosh reverso curto
+  return marca === 'X'
+    ? 'sua marca mais antiga sumiu da casa ' + (i + 1) + '.'
+    : 'a marca da CPU sumiu da casa ' + (i + 1) + '.';
+}
+function entrarProrrogacao() {
+  jogo.prorrogacao = true;
+  $('sticker-prorrogacao').hidden = false;
+  bip(660, 0.1); bip(880, 0.1, 0.1); // sirene curta
+  vibrar(80);
+  provocar('PRORROGAÇÃO. alguém vai cair, e não sou eu.', true);
+}
+function clicarAmnesia(i) {
+  if (!jogo.ativo || jogo.travado) return;
+  if (jogo.vez !== 'X') return;
+  if (jogo.tab[i]) { feedbackOcupada(i); return; }
+  clearTimeout(timerDemora);
+  jogarAmnesia(i, 'X');
+}
+function jogarAmnesia(i, marca) {
+  const fila = filaDe(marca);
+  // dica contextual: tentou fechar linha que dependia da própria condenada?
+  let tentouComCondenada = false;
+  if (marca === 'X' && fila.length === 3) {
+    const tCom = jogo.tab.slice();
+    tCom[i] = 'X';
+    if (vitoriaEm(tCom, 'X')) tentouComCondenada = true;
+  }
+  jogo.tab[i] = marca;
+  fila.push(i);
+  desenharMarca(i, marca);
+  somMarca(marca);
+  vibrar(15);
+  let narr = (marca === 'X' ? 'X' : 'CPU pôs O') + ' na casa ' + (i + 1) + '.';
+  let removida = -1;
+  if (fila.length > 3) { // FIFO: a mais antiga DO PRÓPRIO jogador some antes da checagem
+    removida = fila.shift();
+    jogo.tab[removida] = null;
+    narr += ' ' + animarSumico(removida, marca);
+    if (marca === 'X') {
+      jogo.ultimaLiberadaHumano = removida;
+      const segurava = LINHAS.some(l => l.indexOf(removida) >= 0 && l.some(j => jogo.tab[j] === 'X') && l.every(j => jogo.tab[j] !== 'O'));
+      if (segurava) provocar('ih, era ESSA que segurava seu plano?');
+    } else if (removida === jogo.ultimaLiberadaHumano) {
+      jogo.ultimaLiberadaHumano = -1;
+    }
+  }
+  if (marca === 'O' && i === jogo.ultimaLiberadaHumano) {
+    provocar('obrigada pela casa. era sua?');
+    jogo.ultimaLiberadaHumano = -1;
+  }
+  jogo.lances++;
+  const linha = vitoriaEm(jogo.tab, marca); // checagem SÓ depois do sumiço
+  if (linha) {
+    $('status-jogadas').textContent = narr;
+    finalizarAmnesia(marca, linha);
+    return;
+  }
+  if (tentouComCondenada && removida >= 0 && !dicaCondenadaMostrada) {
+    dicaCondenadaMostrada = true;
+    toast('a marca piscando some ANTES de contar. planeja em volta dela.');
+  }
+  if (jogo.lances >= 40) { finalizarAmnesia('velha', null); return; } // trava de segurança
+  if (jogo.lances === 30 && !jogo.prorrogacao) {
+    entrarProrrogacao();
+    narr += ' PRORROGAÇÃO: a partir de agora a CPU joga no ataque.';
+  }
+  jogo.hashesAm.push(chaveAm({ t: jogo.tab, fH: jogo.filaH, fC: jogo.filaC }, outra(marca)));
+  if (jogo.hashesAm.length > 6) jogo.hashesAm.shift();
+  atualizarCondenadas();
+  atualizarHudAmnesia();
+  jogo.vez = outra(marca);
+  $('status-jogadas').textContent = narr + ' ' + vezPlano();
+  atualizarVez(true);
+  if (jogo.vez === 'O') cpuPensarAmnesia();
+  else armarTimerDemora();
+}
+function cpuPensarAmnesia() {
+  jogo.travado = true;
+  const espera = reduz() ? 250 : 450 + Math.random() * 450;
+  timerCPU = setTimeout(() => {
+    if (!jogo.ativo) return;
+    const casa = cpuAmnesia();
+    jogo.travado = false;
+    jogarAmnesia(casa, 'O');
+  }, espera);
+}
+function finalizarAmnesia(marca, linha) {
+  encerrarVariante();
+  const p = dados.placares.amnesia;
+  const ex = dados.extras.amnesia;
+  const trava40 = marca === 'velha';
+  const vitoria = marca === 'X';
+  let recordeMaratona = false;
+  if (trava40) p.velha++; // não zera nem soma maratona
+  else if (vitoria) {
+    p.voce++;
+    ex.maratonaAtual++;
+    if (ex.maratonaAtual > ex.maratonaRecorde) { ex.maratonaRecorde = ex.maratonaAtual; recordeMaratona = true; }
+  } else {
+    p.cpu++;
+    ex.maratonaAtual = 0;
+  }
+  jogo.proximoComeca = outra(jogo.quemComecou); // alterna a cada rodada
+  salvar();
+  atualizarPlacar(true);
+  atualizarBadgeStreak(trava40 ? null : (vitoria ? 'subiu' : 'quebrou'));
+  let cfg;
+  if (trava40) {
+    const m = MSGS.amnesiaVelha[0];
+    cfg = { fundo: 'draw', emoji: '👻', headline: m.h, sub: m.s, placarLinha: placarLinhaVariante() };
+  } else {
+    const m = msgSemRepetir(vitoria ? 'amnesiaVitoria' : 'amnesiaDerrota');
+    cfg = { fundo: vitoria ? 'win' : 'lose', emoji: vitoria ? '🏆' : '👻', headline: m.h, sub: m.s, placarLinha: placarLinhaVariante() };
+    if (vitoria && recordeMaratona && ex.maratonaRecorde >= 2) cfg.streakLinha = 'NOVO RECORDE DA MARATONA: ' + ex.maratonaRecorde + '. assombrou.';
+    else if (vitoria && ex.maratonaAtual >= 2) cfg.streakLinha = 'MARATONA: ' + ex.maratonaAtual + ' SEM DESCANSAR EM PAZ 👻🔥';
+  }
+  const tab = $('tabuleiro');
+  if (trava40) {
+    somEmpate();
+    if (!reduz()) {
+      tab.classList.add('balanca');
+      agendarFim(() => tab.classList.remove('balanca'), 550);
+    }
+    celulas.forEach((c, i) => agendarFim(() => c.classList.add('apagada'), i * 30));
+    agendarFim(() => abrirOverlay(cfg), reduz() ? 200 : 500);
+    return;
+  }
+  const tint = vitoria ? 'var(--x-tint)' : 'var(--o-tint)';
+  linha.forEach(i => {
+    celulas[i].style.setProperty('--pulse-tint', tint);
+    if (!reduz()) celulas[i].classList.add('vencedora');
+  });
+  if (vitoria) somVitoria(false); else somDerrota();
+  agendarFim(() => riscarLinha(linha, marca), 150);
+  if (!reduz()) {
+    agendarFim(() => {
+      tab.classList.add('shake');
+      agendarFim(() => tab.classList.remove('shake'), 500);
+    }, 400);
+  }
+  if (vitoria) agendarFim(() => confete(130, 1800), 450);
+  else agendarFim(() => celulas.forEach(c => c.classList.add('meia')), 400);
+  agendarFim(() => abrirOverlay(cfg), reduz() ? 300 : 900);
+}
+function novaRodadaAmnesia() {
+  jogo.tab = Array(9).fill(null);
+  limparTabuleiroDOM();
+  jogo.filaH = [];
+  jogo.filaC = [];
+  jogo.lances = 0;
+  jogo.prorrogacao = false;
+  jogo.hashesAm = [];
+  jogo.ultimaLiberadaHumano = -1;
+  jogo.provocouCondenadaCPU = false;
+  $('sticker-prorrogacao').hidden = true;
+  jogo.vez = jogo.proximoComeca || 'X';
+  jogo.quemComecou = jogo.vez;
+  jogo.ativo = true;
+  jogo.travado = false;
+  atualizarVez(false);
+  atualizarPlacar(false);
+  atualizarBadgeStreak(null);
+  atualizarHudAmnesia();
+  $('status-jogadas').textContent = 'Nova rodada de AMNÉSIA. Só 3 marcas vivas por jogador. ' + (jogo.vez === 'X' ? 'Você começa.' : 'A CPU começa.');
+  if (jogo.vez === 'O') cpuPensarAmnesia();
+  else armarTimerDemora();
+}
+
+/* =====================================================================
+   TIJOLADA 🧱 — gravity tic-tac-toe 4x4, vence com 3 (regras puras)
+===================================================================== */
+const SEGS4 = (() => {
+  const segs = [];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) segs.push([r * 4 + c, r * 4 + c + 1, r * 4 + c + 2]);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 2; r++) segs.push([r * 4 + c, (r + 1) * 4 + c, (r + 2) * 4 + c]);
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) segs.push([r * 4 + c, (r + 1) * 4 + c + 1, (r + 2) * 4 + c + 2]);
+  for (let r = 0; r < 2; r++) for (let c = 2; c < 4; c++) segs.push([r * 4 + c, (r + 1) * 4 + c - 1, (r + 2) * 4 + c - 2]);
+  return segs;
+})();
+const SEGS_POR_CASA = (() => {
+  const m = [];
+  for (let i = 0; i < 16; i++) m.push(SEGS4.filter(s => s.indexOf(i) >= 0));
+  return m;
+})();
+function pousoEm(t, col) {
+  for (let r = 3; r >= 0; r--) if (!t[r * 4 + col]) return r;
+  return -1;
+}
+const colunasValidas = t => { const r = []; for (let c = 0; c < 4; c++) if (pousoEm(t, c) >= 0) r.push(c); return r; };
+function segsVitoria(t, marca, idx) { // só os segmentos locais que passam pela casa assentada
+  return SEGS_POR_CASA[idx].filter(s => s.every(j => t[j] === marca));
+}
+function alcancavelTij(t, idx) {
+  if (t[idx]) return false;
+  const r = Math.floor(idx / 4), c = idx % 4;
+  const pr = pousoEm(t, c);
+  return r === pr || r === pr - 1; // na altura atual da coluna ou 1 acima
+}
+function avaliarTij(t) {
+  let v = 0;
+  for (const seg of SEGS4) {
+    let nO = 0, nX = 0, vazia = -1;
+    for (const j of seg) {
+      if (t[j] === 'O') nO++; else if (t[j] === 'X') nX++; else vazia = j;
+    }
+    if (nO === 2 && nX === 0 && vazia >= 0 && alcancavelTij(t, vazia)) v += 10;
+    if (nX === 2 && nO === 0 && vazia >= 0 && alcancavelTij(t, vazia)) v -= 12; // defesa pesa mais
+  }
+  for (let i = 0; i < 16; i++) {
+    const c = i % 4;
+    if (c === 1 || c === 2) { if (t[i] === 'O') v += 3; else if (t[i] === 'X') v -= 3; }
+  }
+  return v;
+}
+const ttTij = new Map(); // transposição do solver (chave = colunas + vez), só valores exatos
+function abTij(t, vez, prof, alfa, beta, limite) {
+  const cols = colunasValidas(t);
+  if (!cols.length) return 0; // velha
+  const solver = limite >= 99;
+  if (!solver && prof >= limite) return avaliarTij(t);
+  let chave = null;
+  if (solver) {
+    chave = t.map(x => x || '-').join('') + vez;
+    const memo = ttTij.get(chave);
+    if (memo !== undefined) return memo;
+  }
+  const a0 = alfa, b0 = beta;
+  const eu = vez === 'O';
+  let melhor = eu ? -Infinity : Infinity;
+  for (const c of cols) {
+    const i = pousoEm(t, c) * 4 + c;
+    t[i] = vez;
+    let s;
+    if (segsVitoria(t, vez, i).length) s = eu ? 1000 - prof : -(1000 - prof);
+    else s = abTij(t, outra(vez), prof + 1, alfa, beta, limite);
+    t[i] = null;
+    if (eu) { if (s > melhor) melhor = s; if (melhor > alfa) alfa = melhor; }
+    else { if (s < melhor) melhor = s; if (melhor < beta) beta = melhor; }
+    if (alfa >= beta) break;
+  }
+  if (solver && melhor > a0 && melhor < b0) ttTij.set(chave, melhor);
+  return melhor;
+}
+function avaliarColunasTij(limite) {
+  if (limite >= 99) ttTij.clear(); // valores 1000−prof são relativos à raiz: cache não sobrevive entre buscas
+  const t = jogo.tab;
+  const aval = [];
+  for (const c of colunasValidas(t)) {
+    const i = pousoEm(t, c) * 4 + c;
+    t[i] = 'O';
+    let v;
+    if (segsVitoria(t, 'O', i).length) v = 1000;
+    else v = abTij(t, 'X', 1, -Infinity, Infinity, limite);
+    if (limite < 99 && v < 900) { // REGRA DO DEGRAU: não construir a escada do humano
+      let degrau = false;
+      for (const c2 of colunasValidas(t)) {
+        const i2 = pousoEm(t, c2) * 4 + c2;
+        t[i2] = 'X';
+        if (segsVitoria(t, 'X', i2).length) degrau = true;
+        t[i2] = null;
+        if (degrau) break;
+      }
+      if (degrau) v -= 50; // salvo se todos forem degrau: a penalidade uniforme preserva a ordem
+    }
+    t[i] = null;
+    aval.push({ c: c, v: v });
+  }
+  aval.sort((a, b) => b.v - a.v);
+  return aval;
+}
+function cpuTijolada() {
+  const t = jogo.tab;
+  const cols = colunasValidas(t);
+  if (jogo.modo === 'moleza') {
+    const vence = cols.filter(c => { const i = pousoEm(t, c) * 4 + c; t[i] = 'O'; const w = segsVitoria(t, 'O', i).length > 0; t[i] = null; return w; });
+    if (vence.length) return sorteio(vence);
+    const bloq = cols.filter(c => { const i = pousoEm(t, c) * 4 + c; t[i] = 'X'; const w = segsVitoria(t, 'X', i).length > 0; t[i] = null; return w; });
+    if (bloq.length && Math.random() < 0.7) return sorteio(bloq); // 30% "não viu"
+    return sorteio(cols);
+  }
+  if (jogo.modo === 'cascagrossa') {
+    const aval = avaliarColunasTij(4);
+    if (aval.length > 1 && Math.random() < 0.10) return aval[1].c; // ruído
+    const top = aval.filter(a => a.v === aval[0].v);
+    return sorteio(top).c;
+  }
+  // IMPOSSÍVEL S.A. — solver até o fim
+  const aval = avaliarColunasTij(99);
+  const pecas = t.filter(Boolean).length;
+  // BALANCEAMENTO (brecha de fábrica): o 4x4-gravidade é vitória forçada do 1º jogador, então o
+  // humano que joga perfeito vence sem brecha. Se ele DESPERDIÇOU a vitória na abertura
+  // (aval[0].v >= 0 na 2ª jogada da CPU), a CPU reabre UM caminho: a derrota MAIS LENTA dela
+  // (a 1ª negativa do ranking) — nunca aval[1] cego, que podia ser outra vitória forçada da CPU
+  // ou um mate-em-1 de presente (v = -999).
+  if (pecas === 3 && aval[0].v >= 0) {
+    const brecha = aval.filter(a => a.v < 0 && a.v > -999);
+    if (brecha.length) return brecha[0].c;
+  }
+  const top = aval.filter(a => a.v === aval[0].v);
+  return sorteio(top).c;
+}
+/* --- TIJOLADA: fluxo e UI --- */
+const setasCol = [];
+function destacarColuna(c) {
+  if (!jogo.ativo || jogo.travado || jogo.vez !== 'X') return;
+  limparDestaqueColuna();
+  const r = pousoEm(jogo.tab, c);
+  if (r < 0) return;
+  for (let rr = 0; rr < 4; rr++) celulas[rr * 4 + c].classList.add('col-alvo');
+  const ghost = celulas[r * 4 + c].querySelector('.ghost-x');
+  if (ghost) ghost.style.opacity = '.18'; // fantasma da peça na casa de pouso
+}
+function limparDestaqueColuna() {
+  celulas.forEach(cel => {
+    cel.classList.remove('col-alvo');
+    const g = cel.querySelector('.ghost-x');
+    if (g) g.style.opacity = '';
+  });
+}
+function atualizarColunasUI() {
+  for (let c = 0; c < 4; c++) {
+    const r = pousoEm(jogo.tab, c);
+    const cheia = r < 0;
+    if (setasCol[c]) {
+      setasCol[c].disabled = cheia;
+      setasCol[c].setAttribute('aria-label', cheia ? 'coluna ' + (c + 1) + ', cheia' : 'coluna ' + (c + 1) + ', próxima vaga: linha ' + (4 - r));
+    }
+    for (let rr = 0; rr < 4; rr++) {
+      const i = rr * 4 + c;
+      const cel = celulas[i];
+      if (jogo.tab[i]) {
+        cel.setAttribute('aria-label', 'coluna ' + (c + 1) + ', linha ' + (4 - rr) + ', ' + jogo.tab[i] +
+          (cheia ? '' : ' — ativar solta tijolo na coluna ' + (c + 1)));
+      } else {
+        cel.setAttribute('aria-label', cheia ? 'coluna ' + (c + 1) + ', cheia' : 'coluna ' + (c + 1) + ', próxima vaga: linha ' + (4 - r));
+      }
+      cel.disabled = cheia; // coluna cheia: botões nativos desabilitados
+    }
+  }
+}
+function desenharTijolo(i, marca, r) {
+  const cel = celulas[i];
+  const rot = (Math.random() * 8 - 4).toFixed(1);
+  const wrap = document.createElement('span');
+  wrap.className = 'marca marca-' + marca.toLowerCase();
+  wrap.style.setProperty('--rot-marca', rot + 'deg');
+  wrap.innerHTML = marca === 'X'
+    ? '<svg viewBox="0 0 100 100" aria-hidden="true"><line class="t1" x1="20" y1="20" x2="80" y2="80"/><line class="t2" x1="80" y1="20" x2="20" y2="80"/></svg>'
+    : '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="30"/></svg>';
+  cel.appendChild(wrap);
+  cel.classList.add('ocupada');
+  if (reduz()) return 0; // peça aparece direto na casa de pouso
+  const alt = cel.clientHeight || 80;
+  const dist = (r + 1) * (alt + 10);
+  const dur = 100 + r * 70;
+  wrap.animate(
+    [{ transform: 'translateY(' + (-dist) + 'px) rotate(var(--rot-marca))' }, { transform: 'translateY(0) rotate(var(--rot-marca))' }],
+    { duration: dur, easing: 'cubic-bezier(.55,0,1,.45)' } // gravidade: acelera (rotate preservado: WAAPI sobrescreve o transform do CSS)
+  );
+  setTimeout(() => { // squash & stretch na aterrissagem
+    wrap.animate(
+      [{ transform: 'rotate(var(--rot-marca)) scaleY(.8)' }, { transform: 'rotate(var(--rot-marca)) scaleY(1)' }],
+      { duration: 120, easing: 'ease-out' }
+    );
+    $('tabuleiro').animate(
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(2px)' }, { transform: 'translateY(0)' }],
+      { duration: 120 }
+    );
+    if (r >= 2) { // poeirinha quando cai do alto
+      const pof = document.createElement('span');
+      pof.className = 'sticker sticker-pof';
+      pof.setAttribute('aria-hidden', 'true');
+      pof.textContent = 'POF';
+      pof.style.bottom = '-6px';
+      pof.style.left = '50%';
+      cel.appendChild(pof);
+      setTimeout(() => pof.remove(), 420);
+    }
+  }, dur);
+  return dur;
+}
+function clicarColuna(c) {
+  if (!jogo.ativo || jogo.travado) return;
+  if (jogo.vez !== 'X') return;
+  const r = pousoEm(jogo.tab, c);
+  if (r < 0) {
+    const chip = $('chip-vez');
+    if (!reduz()) { chip.classList.add('pisca'); setTimeout(() => chip.classList.remove('pisca'), 260); }
+    $('status-jogadas').textContent = 'coluna ' + (c + 1) + ' cheia.';
+    return;
+  }
+  clearTimeout(timerDemora);
+  soltarTijolo(c, 'X');
+}
+let durUltimaQueda = 0; // p/ riscar a linha de vitória só DEPOIS da aterrissagem
+function soltarTijolo(c, marca) {
+  limparDestaqueColuna();
+  const r = pousoEm(jogo.tab, c);
+  const i = r * 4 + c;
+  jogo.tab[i] = marca;
+  if (marca === 'X') jogo.ultimaCasaHumano = i;
+  const dur = desenharTijolo(i, marca, r);
+  durUltimaQueda = dur;
+  setTimeout(() => bip(Math.max(60, 160 - 15 * (r + 1)), 0.08), dur); // TUMP: quanto maior a queda, mais grave
+  vibrar(10);
+  atualizarColunasUI();
+  const segs = segsVitoria(jogo.tab, marca, i);
+  const narr = 'coluna ' + (c + 1) + ' — ' + (marca === 'X' ? 'sua peça' : 'a peça da CPU') + ' caiu na linha ' + (4 - r) + '.';
+  if (segs.length) { // 2 trincas na mesma queda = 1 vitória só
+    $('status-jogadas').textContent = narr;
+    finalizarTijolada(marca, segs);
+    return;
+  }
+  if (jogo.tab.every(Boolean)) {
+    $('status-jogadas').textContent = narr;
+    finalizarTijolada('velha', null);
+    return;
+  }
+  jogo.vez = outra(marca);
+  $('status-jogadas').textContent = narr + ' ' + vezPlano();
+  atualizarVez(true);
+  if (jogo.vez === 'O') cpuPensarTijolada();
+  else armarTimerDemora();
+}
+function cpuPensarTijolada() {
+  jogo.travado = true;
+  const espera = reduz() ? 250 : 300 + Math.random() * 300; // delay teatral 300–600ms
+  timerCPU = setTimeout(() => {
+    if (!jogo.ativo) return;
+    const c = cpuTijolada();
+    // gatilho do degrau: o humano acabou de montar a escada da vitória da CPU
+    const r = pousoEm(jogo.tab, c);
+    if (r >= 0) {
+      const i = r * 4 + c;
+      jogo.tab[i] = 'O';
+      const ganha = segsVitoria(jogo.tab, 'O', i).length > 0;
+      jogo.tab[i] = null;
+      if (ganha && r < 3 && (r + 1) * 4 + c === jogo.ultimaCasaHumano) provocar('você construiu, eu subi. obrigada.', true); // ANTES do lance vencedor
+    }
+    jogo.travado = false;
+    soltarTijolo(c, 'O');
+  }, espera);
+}
+function atualizarReguaTorre() {
+  const regua = $('regua-torre');
+  regua.hidden = jogo.variante !== 'tijolada' || jogo.torreAndar === 0;
+  if (regua.hidden) return;
+  regua.querySelectorAll('.chefe').forEach(ch => {
+    const andar = parseInt(ch.dataset.andar, 10);
+    ch.classList.toggle('vencido', andar < jogo.torreAndar);
+    ch.classList.toggle('atual', andar === jogo.torreAndar);
+  });
+}
+function finalizarTijolada(marca, segs) {
+  encerrarVariante();
+  const p = dados.placares.tijolada;
+  const ex = dados.extras.tijolada;
+  const empate = marca === 'velha';
+  const vitoria = marca === 'X';
+  const naTorre = jogo.torreAndar > 0;
+  const andarAtual = jogo.torreAndar;
+  let torreCompleta = false;
+  if (empate) p.velha++;
+  else if (vitoria) p.voce++;
+  else p.cpu++;
+  // A TORRE: progressão de chefes
+  if (naTorre) {
+    if (vitoria) {
+      if (andarAtual > ex.torreMelhorAndar) ex.torreMelhorAndar = andarAtual;
+      if (andarAtual === 3) {
+        torreCompleta = true;
+        ex.torreTrofeus++;
+        jogo.torreAndar = 1; // novo ciclo na revanche
+      } else {
+        jogo.torreAndar = andarAtual + 1;
+      }
+    } else if (!empate) {
+      ex.torreQuedas++;
+      jogo.torreAndar = 1; // desce pro térreo
+    } // empate: repete o andar
+    jogo.modo = ORDEM_TORRE[jogo.torreAndar - 1];
+  }
+  jogo.proximoComeca = jogo.modo === 'impossivel' ? 'X' : outra(jogo.quemComecou); // alterna; IMPOSSÍVEL: humano começa
+  salvar();
+  atualizarPlacar(true);
+  atualizarBadgeStreak(null);
+  atualizarStickerModoVariante();
+  atualizarReguaTorre();
+  let cfg;
+  if (torreCompleta) {
+    cfg = { fundo: 'win', emoji: '🏆', headline: 'DERRUBOU A TORRE. 🧱🏆', sub: 'troféu eterno no seu placar.', placarLinha: placarLinhaVariante() };
+  } else if (empate) {
+    const m = msgSemRepetir('tijoladaVelha');
+    cfg = { fundo: 'draw', emoji: '🧱', headline: m.h, sub: m.s, placarLinha: placarLinhaVariante() };
+    cfg.streakLinha = naTorre ? 'empatou com o chefe. repete o andar.' : 'EVENTO RARO ✨';
+    if (!naTorre) cfg.streakSticker = true; // empate raríssimo merece sticker dourado
+  } else if (vitoria) {
+    const m = msgSemRepetir('tijoladaVitoria');
+    cfg = { fundo: 'win', emoji: '🧱', headline: m.h, sub: m.s, placarLinha: placarLinhaVariante() };
+    if (naTorre) cfg.streakLinha = 'CHEFE DO ' + andarAtual + 'º ANDAR NO CHÃO. SOBE. 🧱';
+  } else {
+    const m = msgSemRepetir('tijoladaDerrota');
+    cfg = { fundo: 'lose', emoji: '🧱', headline: m.h, sub: m.s, placarLinha: placarLinhaVariante() };
+    if (naTorre) cfg.streakLinha = 'a torre te cuspiu no ' + andarAtual + 'º andar. sobe de novo.';
+  }
+  const tab = $('tabuleiro');
+  if (empate) {
+    somEmpate();
+    if (!reduz()) {
+      tab.classList.add('balanca');
+      agendarFim(() => tab.classList.remove('balanca'), 550);
+    }
+    celulas.forEach((c, i) => agendarFim(() => c.classList.add('apagada'), i * 25));
+    agendarFim(() => abrirOverlay(cfg), reduz() ? 200 : 500);
+    return;
+  }
+  const casas = new Set();
+  segs.forEach(s => s.forEach(i => casas.add(i)));
+  const tint = vitoria ? 'var(--x-tint)' : 'var(--o-tint)';
+  casas.forEach(i => {
+    celulas[i].style.setProperty('--pulse-tint', tint);
+    if (!reduz()) celulas[i].classList.add('vencedora');
+  });
+  if (vitoria || torreCompleta) somVitoria(torreCompleta); else somDerrota();
+  agendarFim(() => riscarLinha(segs[0], marca), durUltimaQueda + 100); // a peça aterrissa antes da linha riscar
+  if (!reduz()) {
+    agendarFim(() => {
+      tab.classList.add('shake');
+      agendarFim(() => tab.classList.remove('shake'), 500);
+    }, 450);
+  }
+  if (vitoria) agendarFim(() => confete(torreCompleta ? 240 : 130, torreCompleta ? 2600 : 1800), 450);
+  else agendarFim(() => celulas.forEach(c => c.classList.add('meia')), 400);
+  agendarFim(() => abrirOverlay(cfg), reduz() ? 300 : 950);
+}
+function novaRodadaTijolada() {
+  jogo.tab = Array(16).fill(null);
+  limparTabuleiroDOM();
+  ttTij.clear();
+  jogo.ultimaCasaHumano = -1;
+  jogo.vez = jogo.modo === 'impossivel' ? 'X' : (jogo.proximoComeca || 'X');
+  jogo.quemComecou = jogo.vez;
+  jogo.ativo = true;
+  jogo.travado = false;
+  $('tabuleiro').classList.add('modo-tijolada');
+  atualizarVez(false);
+  atualizarPlacar(false);
+  atualizarBadgeStreak(null);
+  atualizarColunasUI();
+  atualizarReguaTorre();
+  $('status-jogadas').textContent = 'Nova rodada de TIJOLADA' + (jogo.torreAndar > 0 ? ', ' + jogo.torreAndar + 'º andar d’A TORRE' : '') + '. Escolha a coluna: a peça cai. ' + (jogo.vez === 'X' ? 'Você começa.' : 'A CPU começa.');
+  if (jogo.vez === 'O') cpuPensarTijolada();
+  else armarTimerDemora();
+}
+
+/* ===== Rodadas e telas ===== */
+function novaRodada() {
+  limparTimers();
+  if (jogo.variante !== 'classica') return novaRodadaVariante();
+  jogo.tab = Array(9).fill(null);
+  limparTabuleiroDOM();
+  jogo.vez = jogo.proximoComeca || (ehCPU() ? jogo.marcaHumano : 'X');
+  jogo.quemComecou = jogo.vez;
+  jogo.ativo = true;
+  jogo.travado = false;
+  atualizarVez(false);
+  atualizarPlacar(false);
+  atualizarBadgeStreak(null);
+  $('status-jogadas').textContent = 'Nova rodada. ' + (ehCPU() ? (jogo.vez === jogo.marcaHumano ? 'Você começa.' : 'A CPU começa.') : 'Começa o ' + jogo.vez + '.');
+  if (ehCPU() && jogo.modo === 'impossivel') provocar('pode tentar.');
+  if (ehCPU() && jogo.vez === jogo.marcaCPU) cpuPensar();
+  else if (ehCPU()) armarTimerDemora();
+}
+function revanche() {
+  fecharOverlay();
+  // foco sai do botão (que vai sumir) e volta pro tabuleiro — nunca numa célula disabled (TIJOLADA, coluna cheia)
+  (celulas.find(c => !c.disabled) || $('btn-voltar')).focus();
+  const temMarcas = document.querySelectorAll('#tabuleiro .marca').length > 0;
+  if (reduz() || !temMarcas) { novaRodada(); return; }
+  celulas.forEach((c, i) => {
+    const m = c.querySelector('.marca');
+    if (m) {
+      m.style.animationDelay = (i * 30) + 'ms';
+      m.classList.add('sai');
+    }
+  });
+  agendarFim(novaRodada, 520); // rastreado: limparTimers() cancela se voltar ao menu
+}
+/* ===== Modos brabos: roteamento de rodada e entrada ===== */
+function novaRodadaVariante() {
+  if (jogo.variante === 'batata') return novaRodadaBatata();
+  if (jogo.variante === 'amnesia') return novaRodadaAmnesia();
+  if (jogo.variante === 'tijolada') return novaRodadaTijolada();
+}
+function atualizarStickerModoVariante() {
+  const sm = $('sticker-modo');
+  const info = INFO_VARIANTES[jogo.variante];
+  if (!info) return;
+  sm.className = 'sticker sticker-modo cor-' + jogo.variante;
+  if (jogo.variante === 'tijolada' && jogo.torreAndar > 0) {
+    sm.textContent = info.nome + ' · A TORRE · ' + jogo.torreAndar + 'º ANDAR';
+  } else {
+    sm.textContent = info.nome + ' · ' + NOMES_MODO[jogo.modo];
+  }
+}
+function configurarExtrasVariante() {
+  const v = jogo.variante;
+  $('faixa-extras').hidden = v === 'classica';
+  $('sticker-todox').hidden = v !== 'batata';
+  $('medidor-calor').hidden = v !== 'batata';
+  const cs = $('contador-seguras');
+  cs.hidden = v !== 'batata';
+  if (v === 'batata' && jogo.modo === 'impossivel') cs.textContent = 'sem colete à prova de mico'; // bombas desligadas: decorar É o jogo
+  $('chip-vivas-voce').hidden = v !== 'amnesia';
+  $('chip-vivas-cpu').hidden = v !== 'amnesia';
+  $('sticker-prorrogacao').hidden = true;
+  $('setas-colunas').hidden = v !== 'tijolada';
+  $('btn-regras').hidden = v === 'classica';
+  const tab = $('tabuleiro');
+  tab.classList.toggle('modo-batata', v === 'batata');
+  tab.classList.toggle('bombas-hover', v === 'batata' && jogo.modo === 'cascagrossa');
+  tab.classList.toggle('modo-tijolada', v === 'tijolada');
+  tab.setAttribute('aria-label', {
+    classica: 'Tabuleiro do jogo da velha',
+    batata: 'Tabuleiro da BATATA QUENTE — todo mundo é X; completar trinca perde',
+    amnesia: 'Tabuleiro da AMNÉSIA — só 3 marcas vivas por jogador',
+    tijolada: 'Tabuleiro 4 por 4 da TIJOLADA — escolha uma coluna; a peça cai'
+  }[v]);
+  atualizarReguaTorre();
+}
+/* ===== Onboarding (COMO JOGA) ===== */
+let aposOnboarding = null;
+let pausadoOnboarding = false;
+let invocadorOnboarding = null;
+function abrirOnboarding(variante, comecaDepois) {
+  const info = INFO_VARIANTES[variante];
+  $('onboard-emoji').textContent = info.emoji;
+  $('onboard-titulo').textContent = info.nome + ' — COMO JOGA';
+  const ul = $('onboard-frases');
+  ul.innerHTML = '';
+  info.onboarding.forEach(f => {
+    const li = document.createElement('li');
+    li.textContent = f;
+    ul.appendChild(li);
+  });
+  aposOnboarding = comecaDepois ? () => {
+    dados.onboardingVisto[variante] = true;
+    salvar();
+    novaRodada();
+  } : null;
+  invocadorOnboarding = comecaDepois ? null : document.activeElement;
+  if (!comecaDepois && jogo.ativo) { // '?' no meio da partida: pausa CPU, demora e tique-taque
+    pausadoOnboarding = true;
+    jogo.travado = true;
+    clearTimeout(timerCPU); clearTimeout(timerDemora);
+    clearInterval(timerTick); timerTick = null;
+  }
+  $('overlay-onboard').classList.add('ativa');
+  document.body.style.overflow = 'hidden';
+  $('status-jogadas').textContent = info.nome + ', como joga: ' + info.onboarding.join(' ');
+  setTimeout(() => $('btn-bora').focus(), 60);
+}
+function fecharOnboarding() {
+  $('overlay-onboard').classList.remove('ativa');
+  document.body.style.overflow = '';
+  const fn = aposOnboarding;
+  aposOnboarding = null;
+  if (fn) { fn(); return; }
+  if (pausadoOnboarding) { // retoma o jogo de onde parou
+    pausadoOnboarding = false;
+    jogo.travado = false;
+    if (jogo.ativo) {
+      if (jogo.variante === 'batata') atualizarHudBatata(); // rearma o tique-taque
+      if (jogo.vez === 'O') {
+        if (jogo.variante === 'batata') cpuPensarBatata();
+        else if (jogo.variante === 'amnesia') cpuPensarAmnesia();
+        else if (jogo.variante === 'tijolada') cpuPensarTijolada();
+      } else armarTimerDemora();
+    }
+  }
+  const alvo = invocadorOnboarding;
+  invocadorOnboarding = null;
+  if (alvo && document.contains(alvo)) alvo.focus(); // devolve o foco ao '?'
+  else if ($('tela-jogo').classList.contains('ativa') && celulas[4]) celulas[4].focus();
+}
+function iniciarVariante(variante, dif) {
+  if (dif === 'torre' && variante !== 'tijolada') dif = 'moleza';
+  if (dif !== 'torre' && ORDEM_TORRE.indexOf(dif) < 0) dif = 'moleza';
+  const torre = dif === 'torre';
+  jogo.variante = variante;
+  jogo.torreAndar = (variante === 'tijolada' && torre) ? 1 : 0;
+  jogo.modo = torre ? ORDEM_TORRE[0] : dif;
+  dados.ultimoModo = dif;
+  dados.ultimaVariante = variante;
+  salvar();
+  jogo.marcaHumano = 'X';
+  jogo.marcaCPU = 'O';
+  jogo.proximoComeca = 'X'; // 1ª rodada: humano
+  montarTabuleiro(variante === 'tijolada' ? 4 : 3);
+  if (variante === 'tijolada') {
+    setasCol.length = 0;
+    document.querySelectorAll('#setas-colunas .seta-col').forEach(b => setasCol.push(b));
+  }
+  atualizarStickerModoVariante();
+  configurarExtrasVariante();
+  // HUD/placar do modo já corretos ATRÁS do onboarding (o overlay é translúcido)
+  jogo.tab = Array(variante === 'tijolada' ? 16 : 9).fill(null);
+  jogo.filaH = []; jogo.filaC = [];
+  jogo.vez = 'X';
+  atualizarPlacar(false);
+  atualizarVez(false);
+  atualizarBadgeStreak(null);
+  if (variante === 'batata') atualizarHudBatata();
+  if (variante === 'amnesia') atualizarHudAmnesia();
+  if (variante === 'tijolada') atualizarColunasUI();
+  $('ticker').classList.add('visivel');
+  listaTickerAtiva = INFO_VARIANTES[variante].ticker;
+  baseTicker = embaralhar(listaTickerAtiva);
+  filaTicker = [];
+  atualizarTicker();
+  mostrarTela('tela-jogo');
+  if (!dados.onboardingVisto[variante]) abrirOnboarding(variante, true);
+  else novaRodada();
+}
+function mostrarTela(id) {
+  document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+  const el = $(id);
+  void el.offsetWidth;
+  el.classList.add('ativa');
+}
+function renderMenu() {
+  const bc = $('btn-continuar');
+  if (dados.ultimaVariante && dados.ultimaVariante !== 'classica' && INFO_VARIANTES[dados.ultimaVariante] && (dados.ultimoModo === 'torre' || NOMES_MODO[dados.ultimoModo])) {
+    bc.hidden = false;
+    const nomeDif = dados.ultimoModo === 'torre' ? 'A TORRE' : NOMES_MODO[dados.ultimoModo];
+    bc.textContent = 'CONTINUAR: ' + INFO_VARIANTES[dados.ultimaVariante].nome + ' · ' + nomeDif + ' →';
+  } else if (dados.ultimoModo && NOMES_MODO[dados.ultimoModo]) {
+    bc.hidden = false;
+    bc.textContent = 'CONTINUAR: ' + NOMES_MODO[dados.ultimoModo] + ' →';
+  } else { bc.hidden = true; }
+  const st = $('sticker-tentativas');
+  if (dados.tentativasImpossivel > 0) {
+    st.hidden = false;
+    st.textContent = 'TENTATIVAS FRACASSADAS: ' + dados.tentativasImpossivel;
+  } else { st.hidden = true; }
+  const rc = $('recorde-casa');
+  if (dados.recordeStreak > 0) {
+    rc.hidden = false;
+    rc.textContent = 'RECORDE DA CASA: ' + dados.recordeStreak + ' SEGUIDAS 🔥';
+  } else { rc.hidden = true; }
+  $('btn-marca-x').setAttribute('aria-pressed', String(dados.marcaJogador === 'X'));
+  $('btn-marca-o').setAttribute('aria-pressed', String(dados.marcaJogador === 'O'));
+}
+function irParaMenu() {
+  limparTimers();
+  jogo.ativo = false;
+  fecharOverlay();
+  renderMenu();
+  mostrarTela('tela-inicial');
+}
+function iniciarJogo(modo) {
+  jogo.modo = modo;
+  jogo.variante = 'classica';
+  jogo.torreAndar = 0;
+  dados.ultimoModo = modo;
+  dados.ultimaVariante = 'classica';
+  salvar();
+  if (tamanhoTab !== 3) montarTabuleiro(3);
+  configurarExtrasVariante();
+  jogo.marcaHumano = dados.marcaJogador;
+  jogo.marcaCPU = outra(jogo.marcaHumano);
+  jogo.proximoComeca = ehCPU() ? jogo.marcaHumano : 'X';
+  const sm = $('sticker-modo');
+  sm.textContent = NOMES_MODO[modo];
+  sm.className = 'sticker sticker-modo cor-' + modo;
+  $('ticker').classList.toggle('visivel', ehCPU());
+  listaTickerAtiva = TICKER_BASE;
+  if (ehCPU()) {
+    baseTicker = embaralhar(TICKER_BASE);
+    filaTicker = [];
+    atualizarTicker();
+  }
+  mostrarTela('tela-jogo');
+  novaRodada();
+}
+
+/* ===== Som: toggle ===== */
+function renderSom() {
+  const b = $('btn-som');
+  b.textContent = dados.somLigado ? '🔊' : '🔇';
+  b.setAttribute('aria-pressed', String(dados.somLigado)); // nome fixo 'Som' no HTML; estado só via aria-pressed
+}
+
+/* ===== Eventos ===== */
+document.querySelectorAll('[data-modo]').forEach(b => {
+  b.addEventListener('click', () => iniciarJogo(b.dataset.modo));
+});
+$('btn-continuar').addEventListener('click', () => {
+  if (dados.ultimaVariante && dados.ultimaVariante !== 'classica' && INFO_VARIANTES[dados.ultimaVariante]) {
+    iniciarVariante(dados.ultimaVariante, dados.ultimoModo || 'moleza');
+  } else if (dados.ultimoModo) iniciarJogo(dados.ultimoModo);
+});
+/* ===== Modos brabos: seletor inline no card ===== */
+let varianteSelecionada = null;
+function abrirSeletorBrabo(v) {
+  varianteSelecionada = v;
+  const info = INFO_VARIANTES[v];
+  $('lista-brabos').hidden = true;
+  $('seletor-brabo').hidden = false;
+  $('titulo-brabo').textContent = info.nome + ' · ' + info.selo;
+  $('sub-brabo-moleza').textContent = info.subs.moleza;
+  $('sub-brabo-casca').textContent = info.subs.cascagrossa;
+  $('sub-brabo-impossivel').textContent = info.subs.impossivel;
+  $('btn-torre').hidden = v !== 'tijolada';
+  const inf = $('info-brabo');
+  const ex = dados.extras[v];
+  let partes = [];
+  if (v === 'batata') {
+    if (ex.pavioRecorde > 0) partes.push('🧨 PAVIO RECORDE: ' + ex.pavioRecorde);
+    if (ex.decifrou) partes.push('DECIFROU A BATATA 🥔🧨');
+  } else if (v === 'amnesia') {
+    if (ex.maratonaRecorde > 0) partes.push('MARATONA RECORDE: ' + ex.maratonaRecorde + ' 👻');
+  } else {
+    if (ex.torreTrofeus > 0) partes.push('🧱🏆 × ' + ex.torreTrofeus);
+    if (ex.torreMelhorAndar > 0) partes.push('MELHOR: ' + ex.torreMelhorAndar + 'º ANDAR');
+    if (ex.torreQuedas > 0) partes.push('QUEDAS DA TORRE: ' + ex.torreQuedas);
+  }
+  inf.hidden = partes.length === 0;
+  inf.textContent = partes.join(' · ');
+  const primeiro = document.querySelector('#seletor-brabo [data-dif-brabo]');
+  if (primeiro) primeiro.focus();
+}
+function fecharSeletorBrabo() {
+  $('seletor-brabo').hidden = true;
+  $('lista-brabos').hidden = false;
+  const b = document.querySelector('[data-variante="' + varianteSelecionada + '"]');
+  varianteSelecionada = null;
+  if (b) b.focus();
+}
+document.querySelectorAll('[data-variante]').forEach(b => {
+  b.addEventListener('click', () => abrirSeletorBrabo(b.dataset.variante));
+});
+$('btn-brabo-voltar').addEventListener('click', fecharSeletorBrabo);
+document.querySelectorAll('[data-dif-brabo]').forEach(b => {
+  b.addEventListener('click', () => {
+    if (varianteSelecionada) iniciarVariante(varianteSelecionada, b.dataset.difBrabo);
+  });
+});
+$('btn-regras').addEventListener('click', () => {
+  if (jogo.variante !== 'classica') abrirOnboarding(jogo.variante, false);
+});
+$('btn-bora').addEventListener('click', fecharOnboarding);
+document.querySelectorAll('#setas-colunas .seta-col').forEach(b => {
+  b.addEventListener('click', () => clicarColuna(parseInt(b.dataset.col, 10)));
+  b.addEventListener('pointerenter', () => { if (jogo.variante === 'tijolada') destacarColuna(parseInt(b.dataset.col, 10)); });
+  b.addEventListener('pointerout', () => { if (jogo.variante === 'tijolada') limparDestaqueColuna(); });
+  b.addEventListener('focus', () => { if (jogo.variante === 'tijolada') destacarColuna(parseInt(b.dataset.col, 10)); });
+  b.addEventListener('blur', () => { if (jogo.variante === 'tijolada') limparDestaqueColuna(); });
+});
+$('btn-marca-x').addEventListener('click', () => { dados.marcaJogador = 'X'; salvar(); renderMenu(); });
+$('btn-marca-o').addEventListener('click', () => { dados.marcaJogador = 'O'; salvar(); renderMenu(); });
+$('btn-voltar').addEventListener('click', irParaMenu);
+$('btn-som').addEventListener('click', () => {
+  dados.somLigado = !dados.somLigado;
+  salvar();
+  renderSom();
+  if (dados.somLigado) { garantirAudio(); bip(440, 0.05); }
+});
+$('btn-revanche').addEventListener('click', revanche);
+$('btn-mudar').addEventListener('click', () => { fecharOverlay(); irParaMenu(); });
+$('ticker-inner').addEventListener('animationiteration', atualizarTicker);
+/* com prefers-reduced-motion a animação não roda (sem animationiteration): rotaciona por intervalo */
+setInterval(() => {
+  if (reduz() && $('ticker').classList.contains('visivel')) atualizarTicker();
+}, 6000);
+
+function fecharConfirma() {
+  $('confirma-zerar').hidden = true;
+  $('btn-zerar').hidden = false;
+  $('btn-zerar').focus(); // devolve o foco que estava dentro da confirmação
+}
+$('btn-zerar').addEventListener('click', () => {
+  $('btn-zerar').hidden = true;
+  $('confirma-zerar').hidden = false;
+  $('status-jogadas').textContent = 'Confirmação: apagar todos os placares? Sem choro depois.';
+  $('btn-deixa').focus(); // foco na opção segura; sem timeout — fecha só por escolha do usuário
+});
+$('btn-apaga').addEventListener('click', () => {
+  const limpo = padrao();
+  limpo.somLigado = dados.somLigado;
+  limpo.marcaJogador = dados.marcaJogador;
+  limpo.onboardingVisto = Object.assign({}, dados.onboardingVisto); // tutorial não volta a aparecer
+  dados = limpo;
+  salvar();
+  fecharConfirma();
+  renderMenu();
+  $('status-jogadas').textContent = 'Placar zerado.';
+});
+$('btn-deixa').addEventListener('click', fecharConfirma);
+
+document.addEventListener('keydown', e => {
+  if ($('overlay-onboard').classList.contains('ativa')) {
+    if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); fecharOnboarding(); return; }
+    if (e.key === 'Tab') { e.preventDefault(); $('btn-bora').focus(); } // trap: só BORA é focável
+    return;
+  }
+  if ($('overlay-fim').classList.contains('ativa')) {
+    if (e.key === 'Escape') { e.preventDefault(); revanche(); return; }
+    if (e.key === 'Tab') { // trap simples: só revanche/mudar são focáveis no diálogo
+      e.preventDefault();
+      const foco = [$('btn-revanche'), $('btn-mudar')];
+      const atual = foco.indexOf(document.activeElement);
+      const prox = e.shiftKey
+        ? (atual <= 0 ? foco.length - 1 : atual - 1)
+        : ((atual + 1) % foco.length);
+      foco[prox].focus();
+    }
+    return;
+  }
+  if (!$('tela-jogo').classList.contains('ativa')) return;
+  const n = parseInt(e.key, 10);
+  if (jogo.variante === 'tijolada') {
+    if (n >= 1 && n <= 4) clicarColuna(n - 1); // teclas 1-4 escolhem coluna
+    return;
+  }
+  if (n >= 1 && n <= 9) clicarCasa(n - 1);
+});
+
+/* ===== Início ===== */
+montarTabuleiro();
+renderSom();
+renderMenu();
+})();
+</script>
+</body>
+</html>
