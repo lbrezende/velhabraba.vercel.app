@@ -120,6 +120,15 @@ body{
 .recorde-casa{font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.08em}
 .btn-zerar{background:none;border:none;cursor:pointer;text-decoration:underline;color:var(--ink-soft);
   font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:var(--fs-label);min-height:44px;padding:8px;touch-action:manipulation}
+.barra-workshop{display:flex;flex-direction:column;gap:3px;align-items:center;text-decoration:none;width:100%;
+  margin-top:10px;padding:12px 16px;background:var(--ink);color:var(--bg);border:var(--b3) solid var(--ink);
+  border-radius:12px;box-shadow:var(--shadow-s);transition:transform .12s ease-out,box-shadow .12s ease-out;
+  touch-action:manipulation;min-height:44px;justify-content:center}
+@media(hover:hover){.barra-workshop:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--acid)}}
+.barra-workshop:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--acid)}
+.barra-workshop-titulo{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-label);
+  text-transform:uppercase;letter-spacing:-.01em;color:var(--acid);line-height:1.05}
+.barra-workshop-sub{font-size:.75rem;line-height:1.25;color:var(--bg);font-weight:500;opacity:.92}
 .confirma-zerar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;font-weight:700;color:var(--ink)}
 .confirma-zerar button{background:none;border:none;cursor:pointer;text-decoration:underline;font-weight:700;
   font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:var(--fs-label);min-height:44px;padding:8px;touch-action:manipulation}
@@ -314,6 +323,20 @@ body{
 .sticker-pof{position:absolute;z-index:6;background:var(--bg);font-size:.7rem;padding:2px 8px;pointer-events:none;animation:pufSobe .4s ease-out forwards}
 #overlay-onboard{position:fixed;inset:0;z-index:850;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.55);padding:16px}
 #overlay-onboard.ativa{display:flex}
+.modal-som{position:fixed;inset:0;z-index:970;display:flex;align-items:center;justify-content:center;
+  background:rgba(13,13,13,.72);padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.modal-som-caixa{max-width:380px;width:100%;background:var(--surface);border:5px solid var(--ink);
+  box-shadow:var(--shadow-xl);border-radius:16px;padding:28px 22px;text-align:center;transform:rotate(-1deg)}
+.modal-som-emoji{font-size:2.6rem;display:block;margin-bottom:4px;animation:somBob 1.4s ease-in-out infinite alternate}
+@keyframes somBob{from{transform:scale(1) rotate(-4deg)}to{transform:scale(1.12) rotate(4deg)}}
+.modal-som h2{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-h2);
+  text-transform:uppercase;letter-spacing:-.02em;line-height:.92;margin-bottom:10px}
+.modal-som p{font-size:var(--fs-body);line-height:1.3;margin-bottom:20px;font-weight:500;color:var(--ink)}
+.btn-ativar-som{width:100%;background:var(--acid);color:var(--ink);font-family:'Archivo Black','Arial Black',Impact,sans-serif;
+  text-transform:uppercase;letter-spacing:-.01em;font-size:var(--fs-btn);margin-bottom:10px}
+.btn-sem-som{background:none;border:none;cursor:pointer;text-decoration:underline;color:var(--ink-soft);
+  font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:var(--fs-label);min-height:44px;padding:8px;touch-action:manipulation}
+@media(prefers-reduced-motion:reduce){.modal-som-emoji{animation:none}}
 .card-onboard{background:var(--acid)}
 .titulo-onboard{font-family:'Archivo Black','Arial Black',Impact,sans-serif;font-size:var(--fs-h2);text-transform:uppercase;letter-spacing:-.02em;line-height:.92}
 .onboard-frases{list-style:none;display:flex;flex-direction:column;gap:10px;font-size:var(--fs-body);font-weight:500;text-align:left;width:100%}
@@ -443,6 +466,10 @@ body{
           <button id="btn-apaga" class="apaga">APAGA LOGO</button>
           <button id="btn-deixa">DEIXA QUIETO</button>
         </div>
+        <a class="barra-workshop" href="https://lp.designengineer.com.br/" target="_blank" rel="noopener noreferrer">
+          <span class="barra-workshop-titulo">🎮 WORKSHOP: DO FIGMA AO APP COM IA →</span>
+          <span class="barra-workshop-sub">Aprenda a criar qualquer coisa com IA — jogo, site, sistema, app online — no Workshop do Figma ao App.</span>
+        </a>
       </footer>
     </div>
   </section>
@@ -515,6 +542,16 @@ body{
 </div>
 <div id="toast" role="status"></div>
 
+<div id="modal-som" class="modal-som" hidden role="dialog" aria-modal="true" aria-labelledby="modal-som-titulo" aria-describedby="modal-som-texto">
+  <div class="modal-som-caixa">
+    <span class="modal-som-emoji" aria-hidden="true">🔊</span>
+    <h2 id="modal-som-titulo">JOGA COM SOM?</h2>
+    <p id="modal-som-texto">A VELHA BRABA tem efeitos sonoros brabos. No celular o navegador segura o áudio até você liberar — toca no botão e o som sai.</p>
+    <button id="btn-ativar-som" class="btn btn-ativar-som">ATIVAR SOM 🔊</button>
+    <button id="btn-sem-som" class="btn-sem-som">jogar no mudo</button>
+  </div>
+</div>
+
 <div id="status-jogadas" class="visually-hidden" role="status" aria-live="polite"></div>
 <script>
 (() => {
@@ -549,6 +586,7 @@ const padrao = () => ({
   tentativasImpossivel: 0,
   ultimaMsgIdx: {},
   somLigado: true,
+  somPerguntado: false,
   ultimoModo: null,
   ultimaVariante: 'classica',
   marcaJogador: 'X'
@@ -576,6 +614,7 @@ function carregar() {
       }
       if (!base.ultimaMsgIdx || typeof base.ultimaMsgIdx !== 'object') base.ultimaMsgIdx = {};
       base.somLigado = base.somLigado !== false;
+      base.somPerguntado = base.somPerguntado === true;
       if (base.marcaJogador !== 'X' && base.marcaJogador !== 'O') base.marcaJogador = 'X';
       // extras dos modos brabos: merge aditivo com saneamento por tipo
       const refEx = padrao().extras;
@@ -2837,6 +2876,29 @@ $('btn-som').addEventListener('click', () => {
   renderSom();
   if (dados.somLigado) { garantirAudio(); bip(440, 0.05); }
 });
+/* ===== Janelinha: liberar som no mobile (gesto explícito destrava o áudio) ===== */
+function abrirModalSom() {
+  $('modal-som').hidden = false;
+  $('btn-ativar-som').focus();
+}
+function fecharModalSom() {
+  dados.somPerguntado = true;
+  salvar();
+  $('modal-som').hidden = true;
+  renderSom();
+  const b = $('btn-som');
+  if (b) b.focus();
+}
+$('btn-ativar-som').addEventListener('click', () => {
+  dados.somLigado = true;
+  destravarAudio();              // o clique é o gesto que libera o WebAudio
+  somVitoria(false);            // toca um som de confirmação — a pessoa ouve que funcionou
+  fecharModalSom();
+});
+$('btn-sem-som').addEventListener('click', () => {
+  dados.somLigado = false;
+  fecharModalSom();
+});
 $('btn-revanche').addEventListener('click', revanche);
 $('btn-mudar').addEventListener('click', () => { fecharOverlay(); irParaMenu(); });
 $('ticker-inner').addEventListener('animationiteration', atualizarTicker);
@@ -2901,6 +2963,7 @@ document.addEventListener('keydown', e => {
 montarTabuleiro();
 renderSom();
 renderMenu();
+if (!dados.somPerguntado) abrirModalSom();
 })();
 </script>
 </body>
