@@ -125,6 +125,11 @@ body{
   font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:var(--fs-label);min-height:44px;padding:8px;touch-action:manipulation}
 .confirma-zerar .apaga{color:var(--lose)}
 @media(min-width:768px){.cards-modos{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}}
+/* desktop: 3 colunas — modos | mano a mano | sobre */
+@media(min-width:1024px){
+  .menu-wrap{max-width:1100px}
+  .cards-modos{grid-template-columns:repeat(3,1fr);gap:24px}
+}
 
 /* ===== Tela de jogo ===== */
 #tela-jogo{justify-content:flex-start}
@@ -446,7 +451,7 @@ body{
         <div class="card card-sobre">
           <span class="selo-sobre">SOBRE ★</span>
           <h2>QUER CRIAR JOGOS ASSIM?</h2>
-          <p class="texto-sobre">Aprenda a criar jogos como esses e muito mais em Design de produtos, sistemas, sites, aplicativos online e web no workshop do app Alfigma.</p>
+          <p class="texto-sobre">Aprenda a criar jogos como esses e muito mais em Design de produtos, sistemas, sites, aplicativos online e web no <strong>Workshop do Figma ao App</strong>.</p>
           <a class="btn btn-sobre" href="https://lp.designengineer.com.br/" target="_blank" rel="noopener noreferrer">QUERO APRENDER →</a>
         </div>
       </div>
