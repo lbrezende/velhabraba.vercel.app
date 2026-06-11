@@ -83,6 +83,7 @@ body{
 .card-cpu{transform:rotate(.5deg)}
 .card-2p{transform:rotate(-.8deg)}
 .card-sobre{transform:rotate(.6deg);background:var(--purple);color:var(--bg);position:relative}
+.card-sobre-jogo{margin-top:8px;transform:rotate(-.5deg)}
 .card-sobre h2{color:var(--bg)}
 .selo-sobre{position:absolute;top:-14px;right:14px;background:var(--acid);color:var(--ink);
   border:var(--b3) solid var(--ink);box-shadow:var(--shadow-s);font-weight:800;font-size:.75rem;
@@ -372,6 +373,7 @@ body{
   .placar .num{font-size:1.25rem}
   .chip-vez{padding:5px 12px;font-size:.8125rem}
   .ticker{display:none!important}
+  .card-sobre-jogo{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.15s!important}
@@ -508,6 +510,12 @@ body{
       </div>
       <span id="badge-streak" class="badge-streak"></span>
       <div id="ticker" class="ticker" aria-hidden="true"><span id="ticker-inner" class="ticker-inner"></span></div>
+      <div class="card card-sobre card-sobre-jogo">
+        <span class="selo-sobre">SOBRE ★</span>
+        <h2>QUER CRIAR JOGOS ASSIM?</h2>
+        <p class="texto-sobre">Aprenda a criar jogos como esses e muito mais em Design de produtos, sistemas, sites, aplicativos online e web no <strong>Workshop do Figma ao App</strong>.</p>
+        <a class="btn btn-sobre" href="https://www.designengineer.com.br/jogo-da-velha" target="_blank" rel="noopener noreferrer">QUERO APRENDER →</a>
+      </div>
     </div>
   </section>
 </main>
