@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/static-server.js"],
+      "port": 5959
+    },
+    {
+      "name": "nicktactoe",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8931", "--directory", "/Users/leandrorezende/Documents/Claude Code/nicktactoe"],
+      "port": 8931
+    }
+  ]
+}
